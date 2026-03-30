@@ -15,14 +15,16 @@ class Categoria(models.Model):
 class Producto(models.Model):
     id_producto = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
-    descripcion = models.TextField()
+    descripcion = models.TextField(blank=True, null=True)
     sku = models.CharField(max_length=50, blank=True, null=True)
     barcode = models.CharField(max_length=100, blank=True, null=True)
     stock = models.IntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    precio_mayorista = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     costo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     min_stock = models.IntegerField(default=5)
     id_categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, db_column='id_categoria')
+    fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de vencimiento")
     
     class Meta:
         db_table = 'productos'
@@ -86,6 +88,7 @@ class DetalleVenta(models.Model):
     cantidad = models.IntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    nombre_producto = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:
         db_table = 'detalle_venta'
@@ -149,3 +152,56 @@ class MovimientoInventario(models.Model):
 
     def __str__(self):
         return f"Movimiento {self.id_movimiento} - {self.tipo} - {self.id_producto.nombre}"
+
+#================================================================================ ORDENES DE COMPRA ================================================================================
+class OrdenCompra(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('parcial', 'Parcialmente Recibida'),
+        ('completada', 'Completada'),
+        ('cancelada', 'Cancelada'),
+    ]
+    
+    id_orden_compra = models.AutoField(primary_key=True)
+    numero_orden = models.CharField(max_length=50, unique=True)
+    id_proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, db_column='id_proveedor')
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_esperada = models.DateField()
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    notas = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'ordenes_compra'
+
+class DetalleOrdenCompra(models.Model):
+    id_detalle_orden = models.AutoField(primary_key=True)
+    id_orden_compra = models.ForeignKey('OrdenCompra', on_delete=models.CASCADE, db_column='id_orden_compra')
+    id_producto = models.ForeignKey('Producto', on_delete=models.CASCADE, db_column='id_producto')
+    cantidad_solicitada = models.IntegerField()
+    cantidad_recibida = models.IntegerField(default=0)
+    costo_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'detalle_orden_compra'
+
+class DevolucionProveedor(models.Model):
+    ESTADO_DEVOLUCION = [
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+        ('completada', 'Completada'),
+    ]
+    
+    id_devolucion = models.AutoField(primary_key=True)
+    id_orden_compra = models.ForeignKey('OrdenCompra', on_delete=models.CASCADE, db_column='id_orden_compra')
+    id_producto = models.ForeignKey('Producto', on_delete=models.CASCADE, db_column='id_producto')
+    cantidad = models.IntegerField()
+    motivo = models.TextField()
+    fecha_devolucion = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_DEVOLUCION, default='pendiente')
+
+    class Meta:
+        db_table = 'devoluciones_proveedores'

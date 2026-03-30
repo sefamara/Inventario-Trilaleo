@@ -1,17 +1,77 @@
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+interface Supplier {
+  id_proveedor: number;
+  empresa: string;
+  contacto: string;
+  email: string;
+  telefono: string | null;
+  telefono_secundario?: string | null;
+  direccion: string | null;
+  ciudad: string | null;
+  rut: string | null;
+  productos_que_surte: string | null;
+  productos_ids?: number[];
+  condiciones_pago: string | null;
+  tiempo_entrega: string | null;
+  activo: boolean;
+  fecha_registro?: string;
+  notas?: string | null;
+}
 
 export const api = {
   // GET - usar español para coincidir con Django
   
   getCategories: () => fetch(`${API_BASE}/categorias/`).then(res => res.json()),
+  
+  createCategory: async (data: { nombre: string }): Promise<any> => {
+    const response = await fetch(`${API_BASE}/categorias/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
+    }
+    return response.json();
+  },
+
+  updateCategory: async (id: number, data: { nombre: string }): Promise<any> => {
+    const response = await fetch(`${API_BASE}/categorias/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
+    }
+    return response.json();
+  },
+
+  deleteCategory: async (id: number): Promise<any> => {
+    const response = await fetch(`${API_BASE}/categorias/${id}/`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error eliminando categoría');
+    }
+    if (response.status === 200) {
+      return response.json();
+    }
+    return { success: true };
+  },
+
   getPresentaciones: () => fetch(`${API_BASE}/presentaciones_producto/`).then(res => res.json()),
 
 //================================================================================ MODULO PRODUCTOS ================================================================================
 
-// GET
+  // GET
   getProducts: () => fetch(`${API_BASE}/productos/`).then(res => res.json()),
 
-// POST
+  // POST
   createProducto: (data: any) => fetch(`${API_BASE}/productos/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -25,7 +85,7 @@ export const api = {
     return res.json();
   }),
   
-// PUT
+  // PUT
   updateProduct: (id: number, data: any) => {
     const url = `${API_BASE}/productos/${id}/`;
     // console.log('🎯 URL completa:', url);
@@ -59,7 +119,7 @@ export const api = {
     });
   },
   
-// DELETE
+  // DELETE
   deleteProducto: (id: number) => {
     // VERIFICAR ID ANTES DE HACER LA PETICIÓN
     if (!id || isNaN(id)) {
@@ -97,21 +157,197 @@ export const api = {
 
 //================================================================================ MODULO PROVEEDORES ================================================================================
 
-  getProveedores: () => fetch(`${API_BASE}/proveedores/`).then(res => res.json()),
+  // GET PROVEEDORES - Mejorado
+  getProveedores: async (): Promise<any[]> => {
+    try {
+      console.log('🔍 Obteniendo proveedores...');
+      const response = await fetch(`${API_BASE}/proveedores/`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error obteniendo proveedores:', errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Proveedores obtenidos:', data.length);
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getProveedores:', error);
+      throw error;
+    }
+  },
+
   getProveedor: (id: number) => fetch(`${API_BASE}/proveedores/${id}/`).then(res => res.json()),
-  createProveedor: (data: any) => fetch(`${API_BASE}/proveedores/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).then(res => res.json()),
-  updateProveedor: (id: number, data: any) => fetch(`${API_BASE}/proveedores/${id}/`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).then(res => res.json()),
-  deleteProveedor: (id: number) => fetch(`${API_BASE}/proveedores/${id}/`, {
-    method: 'DELETE'
-  }).then(res => res.json()),
+
+  // CREATE PROVEEDOR - Completamente corregido
+  createProveedor: async (data: any): Promise<any> => {
+    try {
+      console.log('📤 Creando proveedor:', data);
+      
+      // Validar campos requeridos ANTES de enviar
+      if (!data.empresa?.trim()) {
+        throw new Error('El campo Empresa es requerido');
+      }
+      if (!data.contacto?.trim()) {
+        throw new Error('El campo Contacto es requerido');
+      }
+      if (!data.email?.trim()) {
+        throw new Error('El campo Email es requerido');
+      }
+
+      // Estructura EXACTA que espera Django
+      const supplierData = {
+        empresa: data.empresa.trim(),
+        contacto: data.contacto.trim(),
+        email: data.email.trim(),
+        telefono: data.telefono?.trim() || null,
+        direccion: data.direccion?.trim() || null,
+        ciudad: data.ciudad?.trim() || null,
+        rut: data.rut?.trim() || null,
+        productos_que_surte: data.productos_que_surte?.trim() || null,
+        condiciones_pago: data.condiciones_pago || null,
+        tiempo_entrega: data.tiempo_entrega?.trim() || null,
+        activo: data.activo !== false,
+        productos_ids: data.productos_ids || []
+      };
+
+      console.log('📤 Datos enviados a API:', supplierData);
+
+      const response = await fetch(`${API_BASE}/proveedores/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supplierData)
+      });
+
+      console.log('📥 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error del servidor:', errorText);
+        
+        // Intentar parsear errores de Django
+        try {
+          const errorJson = JSON.parse(errorText);
+          const errorMessages = Object.values(errorJson).flat().join(', ');
+          throw new Error(errorMessages);
+        } catch {
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log('✅ Proveedor creado exitosamente:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error en createProveedor:', error);
+      throw error;
+    }
+  },
+
+  // UPDATE PROVEEDOR - Completamente corregido
+  updateProveedor: async (id: number, data: any): Promise<any> => {
+    try {
+      console.log('📝 Actualizando proveedor ID:', id, 'Data:', data);
+      
+      if (!id || isNaN(id)) {
+        throw new Error(`ID de proveedor inválido: ${id}`);
+      }
+
+      // Validar campos requeridos
+      if (!data.empresa?.trim()) {
+        throw new Error('El campo Empresa es requerido');
+      }
+      if (!data.contacto?.trim()) {
+        throw new Error('El campo Contacto es requerido');
+      }
+      if (!data.email?.trim()) {
+        throw new Error('El campo Email es requerido');
+      }
+
+      const supplierData = {
+        empresa: data.empresa.trim(),
+        contacto: data.contacto.trim(),
+        email: data.email.trim(),
+        telefono: data.telefono?.trim() || null,
+        direccion: data.direccion?.trim() || null,
+        ciudad: data.ciudad?.trim() || null,
+        rut: data.rut?.trim() || null,
+        productos_que_surte: data.productos_que_surte?.trim() || null,
+        condiciones_pago: data.condiciones_pago || null,
+        tiempo_entrega: data.tiempo_entrega?.trim() || null,
+        activo: data.activo !== false,
+        productos_ids: data.productos_ids || []
+      };
+
+      const response = await fetch(`${API_BASE}/proveedores/${id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supplierData)
+      });
+
+      console.log('📥 Update response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error del servidor:', errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Proveedor actualizado:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error en updateProveedor:', error);
+      throw error;
+    }
+  },
+
+  // DELETE PROVEEDOR - Ya está bien
+  deleteProveedor: async (id: number): Promise<{success: boolean, message: string}> => {
+    console.log('🗑️ Eliminando proveedor ID:', id);
+    
+    if (!id || isNaN(id)) {
+      console.error('❌ ID inválido para eliminar:', id);
+      throw new Error(`ID de proveedor inválido: ${id}`);
+    }
+
+    const response = await fetch(`${API_BASE}/proveedores/${id}/`, {
+      method: 'DELETE'
+    });
+    
+    console.log('🗑️ DELETE Proveedor - Status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error eliminando proveedor:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+    
+    if (response.status === 204) {
+      console.log('✅ Proveedor eliminado (204 No Content)');
+      return { 
+        success: true, 
+        message: 'Proveedor eliminado correctamente' 
+      };
+    }
+    
+    try {
+      const result = await response.json();
+      console.log('✅ Proveedor eliminado:', result);
+      return result;
+    } catch {
+      console.log('✅ Proveedor eliminado (respuesta no JSON)');
+      return { 
+        success: true, 
+        message: 'Proveedor eliminado correctamente' 
+      };
+    }
+  },
+
   searchProveedores: (query: string) => fetch(`${API_BASE}/proveedores/buscar/?q=${query}`).then(res => res.json()),
 
 //================================================================================ MODULO VENTAS ================================================================================
@@ -175,6 +411,7 @@ export const api = {
   },
 
 //================================================================================ CLIENTES ================================================================================
+
   getClientes: () => fetch(`${API_BASE}/clientes/`).then(res => res.json()),
   getCliente: (id: number) => fetch(`${API_BASE}/clientes/${id}/`).then(res => res.json()),
   createCliente: (data: any) => fetch(`${API_BASE}/clientes/`, {
@@ -184,28 +421,48 @@ export const api = {
   }).then(res => res.json()),
 
 //================================================================================ PROMOCIONES ================================================================================
+
   getPromociones: () => fetch(`${API_BASE}/promociones/`).then(res => res.json()),
   getPromocion: (id: number) => fetch(`${API_BASE}/promociones/${id}/`).then(res => res.json()),
 
 //================================================================================ MOVIMIENTOS DE INVENTARIO ================================================================================
+
   getMovimientosInventario: async (): Promise<any[]> => {
-    const response = await fetch(`${API_BASE}/api/movimientos-inventario/`);
-    if (!response.ok) throw new Error('Error fetching movimientos inventario');
-    return response.json();
+    try {
+      console.log('🌐 [DEBUG] Llamando a API: movimientos-inventario/');
+      const url = `${API_BASE}/movimientos-inventario/`;
+      console.log('🌐 [DEBUG] URL completa:', url);
+      
+      const response = await fetch(url);
+      console.log('📡 [DEBUG] Response status:', response.status);
+      console.log('📡 [DEBUG] Response ok:', response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [DEBUG] Error response:', errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ [DEBUG] Movimientos obtenidos de API:', data);
+      console.log('📊 [DEBUG] Cantidad de movimientos en response:', data.length);
+      return data;
+    } catch (error) {
+      console.error('❌ [DEBUG] Error fetching movimientos inventario:', error);
+      throw error;
+    }
   },
 
   getMovimientosByProducto: async (productoId: number): Promise<any[]> => {
-    const response = await fetch(`${API_BASE}/api/movimientos-inventario/?producto_id=${productoId}`);
+    const response = await fetch(`${API_BASE}/movimientos-inventario/?producto_id=${productoId}`);
     if (!response.ok) throw new Error('Error fetching movimientos por producto');
     return response.json();
   },
 
-  createMovimientoInventario: async (movimientoData: any) => {
+  // CORREGIDO: Quitar "export const"
+  createMovimientoInventario: async (movimientoData: any): Promise<any> => {
     try {
-      console.log('📤 Enviando movimiento a API:', movimientoData);
-      
-      // Asegúrate de que la URL sea correcta - quita el /api/ duplicado
-      const response = await fetch(`${API_BASE}/movimientos-inventario`, {
+      const response = await fetch(`${API_BASE}/movimientos-inventario/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,27 +470,114 @@ export const api = {
         body: JSON.stringify(movimientoData),
       });
       
-      console.log('📊 Response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Error response:', errorText);
-        throw new Error(`Error creating movimiento inventario: ${response.status} - ${errorText}`);
+        console.error('Error response:', errorText);
+        throw new Error(`Error creating movimiento inventario: ${response.status}`);
       }
       
-      const result = await response.json();
-      console.log('✅ Movimiento creado:', result);
-      return result;
+      return await response.json();
     } catch (error) {
-      console.error('❌ Error en createMovimientoInventario:', error);
+      console.error('Error creating movimiento inventario:', error);
       throw error;
     }
   },
 
   deleteMovimientoInventario: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/api/movimientos-inventario/${id}/`, {
+    const response = await fetch(`${API_BASE}/movimientos-inventario/${id}/`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Error deleting movimiento inventario');
+  },
+
+//================================================================================ Ordenes de compra ================================================================================
+  // Órdenes de Compra
+  getOrdenesCompra: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE}/ordenes-compra/`); // ✅ CORRECTO
+    return response.json();
+  },
+
+  createOrdenCompra: async (ordenData: any): Promise<any> => {
+    const response = await fetch(`${API_BASE}/ordenes-compra/`, { // ✅ CORRECTO
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ordenData)
+    });
+    return response.json();
+  },
+
+  recibirProductosOrden: async (ordenId: number, itemsData: any[]): Promise<any> => {
+    const response = await fetch(`${API_BASE}/ordenes-compra/${ordenId}/recibir_productos/`, { // ✅ CORRECTO
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: itemsData })
+    });
+    return response.json();
+  },
+
+  // Devoluciones
+  getDevolucionesProveedores: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE}/devoluciones-proveedores/`); // ✅ CORRECTO
+    return response.json();
+  },
+
+  createDevolucionProveedor: async (devolucionData: any): Promise<any> => {
+    const response = await fetch(`${API_BASE}/devoluciones-proveedores/`, { // ✅ CORRECTO
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(devolucionData)
+    });
+    return response.json();
+  },
+
+  procesarDevolucion: async (devolucionId: number, estado: string): Promise<any> => {
+    const response = await fetch(`${API_BASE}/devoluciones-proveedores/${devolucionId}/procesar_devolucion/`, { // ✅ CORRECTO
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado })
+    });
+    return response.json();
+  },
+
+//================================================================================ ELIMINACIÓN MASIVA ================================================================================
+
+  // Eliminar TODAS las ventas y sus detalles
+  deleteAllSales: async (): Promise<{message: string}> => {
+    console.log('🗑️ Eliminando TODAS las ventas de la BD');
+    const response = await fetch(`${API_BASE}/ventas/delete_all/`, {  // ← URL CORREGIDA
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error eliminando ventas:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Ventas eliminadas:', result);
+    return result;
+  },
+
+  // Eliminar TODOS los movimientos de inventario
+  deleteAllInventoryMovements: async (): Promise<{message: string}> => {
+    const url = `${API_BASE}/movimientos-inventario/delete_all/`;
+    console.log('🔍 URL que se está llamando:', url);
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error eliminando movimientos:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Movimientos eliminados:', result);
+    return result;
   },
 };
