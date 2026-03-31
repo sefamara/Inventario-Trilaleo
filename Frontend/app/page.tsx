@@ -58,6 +58,7 @@ import { MetricCard } from "@/components/metric-card"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { SalesChart, ProductsPieChart, CategoryBarChart } from "@/components/chart-components"
 import { exportToExcel } from "@/utils/excel-export"
+import { BarcodeScanner } from "@/components/barcode-scanner"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -375,7 +376,7 @@ const EditProductForm: React.FC<{
           <Input
             id="edit-product-price"
             type="number"
-            value={editedProduct.price}
+            value={editedProduct.price || ""}
             onChange={(e) => setEditedProduct({ ...editedProduct, price: Number(e.target.value) })}
             placeholder="0"
             min="0"
@@ -387,7 +388,7 @@ const EditProductForm: React.FC<{
           <Input
             id="edit-product-wholesale"
             type="number"
-            value={editedProduct.wholesalePrice}
+            value={editedProduct.wholesalePrice || ""}
             onChange={(e) => setEditedProduct({ ...editedProduct, wholesalePrice: Number(e.target.value) })}
             placeholder="0"
             min="0"
@@ -399,7 +400,7 @@ const EditProductForm: React.FC<{
           <Input
             id="edit-product-cost"
             type="number"
-            value={editedProduct.cost}
+            value={editedProduct.cost || ""}
             onChange={(e) => setEditedProduct({ ...editedProduct, cost: Number(e.target.value) })}
             placeholder="0"
             min="0"
@@ -414,7 +415,7 @@ const EditProductForm: React.FC<{
           <Input
             id="edit-product-stock"
             type="number"
-            value={editedProduct.stock}
+            value={editedProduct.stock || ""}
             onChange={(e) => setEditedProduct({ ...editedProduct, stock: Number(e.target.value) })}
             placeholder="0"
             min="0"
@@ -425,8 +426,9 @@ const EditProductForm: React.FC<{
           <Input
             id="edit-product-minstock"
             type="number"
-            value={editedProduct.minStock}
+            value={editedProduct.minStock || ""}
             onChange={(e) => setEditedProduct({ ...editedProduct, minStock: Number(e.target.value) })}
+            onFocus={(e) => e.target.select()}
             placeholder="1"
             min="1"
           />
@@ -2863,8 +2865,11 @@ export default function BusinessSalesSystem() {
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [isEditSupplierDialogOpen, setIsEditSupplierDialogOpen] = useState(false);
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
 
   // Estado de gestión de categorías
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -3249,7 +3254,7 @@ export default function BusinessSalesSystem() {
         price: precioFinal,
         cost: newProduct.cost,
         stock: newProduct.stock,
-        minStock: newProduct.minStock,
+        minStock: newProduct.minStock || 1,
         wholesalePrice: newProduct.wholesalePrice,
         observations: newProduct.observations,
         categoryId: selectedCategoryId,
@@ -3282,8 +3287,7 @@ export default function BusinessSalesSystem() {
         timestamp: new Date()
       }, ...prev]);
 
-      const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]') as HTMLButtonElement;
-      if (closeButton) closeButton.click();
+      setIsAddProductOpen(false);
 
     } catch (error: any) {
       console.error('❌ Error agregando producto:', error);
@@ -3312,9 +3316,7 @@ export default function BusinessSalesSystem() {
         timestamp: new Date()
       }, ...prev]);
 
-      // Cerrar diálogo
-      const closeButton = document.querySelector('[data-state="open"] button[aria-label="Close"]') as HTMLButtonElement;
-      if (closeButton) closeButton.click();
+      setIsAddCategoryOpen(false);
     } catch (error: any) {
       console.error('Error creando categoría:', error);
       setErrors(prev => ({ ...prev, category: 'Error al crear la categoría: ' + error.message }));
@@ -3645,14 +3647,7 @@ export default function BusinessSalesSystem() {
         timestamp: new Date()
       }, ...prev]);
 
-      // Cerrar diálogo después de un breve delay
-      setTimeout(() => {
-        const dialogs = document.querySelectorAll('[data-state="open"]');
-        dialogs.forEach(dialog => {
-          const closeBtn = dialog.querySelector('button[aria-label="Close"]');
-          if (closeBtn) (closeBtn as HTMLButtonElement).click();
-        });
-      }, 500);
+      setIsAddSupplierOpen(false);
       
     } catch (error: any) {
       console.error('❌ Error agregando proveedor:', error);
@@ -4653,14 +4648,14 @@ export default function BusinessSalesSystem() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Gestión de Productos</CardTitle>
-                  <Dialog>
+                  <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Agregar Producto
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Agregar Nuevo Producto</DialogTitle>
                         <DialogDescription>
@@ -4693,12 +4688,16 @@ export default function BusinessSalesSystem() {
                           </div>
                           <div>
                             <Label htmlFor="product-barcode">Código de Barras</Label>
-                            <Input
-                              id="product-barcode"
-                              value={newProduct.barcode}
-                              onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-                              placeholder="7501234567890"
-                            />
+                            <div className="flex gap-2">
+                              <Input
+                                id="product-barcode"
+                                value={newProduct.barcode}
+                                onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+                                placeholder="7501234567890"
+                                className="flex-1"
+                              />
+                              <BarcodeScanner onScan={(code) => setNewProduct({ ...newProduct, barcode: code })} />
+                            </div>
                           </div>
                         </div>
                         
@@ -4709,7 +4708,7 @@ export default function BusinessSalesSystem() {
                             <Input
                               id="product-price"
                               type="number"
-                              value={newProduct.price}
+                              value={newProduct.price || ""}
                               onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
                               placeholder="0"
                             />
@@ -4719,7 +4718,7 @@ export default function BusinessSalesSystem() {
                             <Input
                               id="product-wholesale"
                               type="number"
-                              value={newProduct.wholesalePrice}
+                              value={newProduct.wholesalePrice || ""}
                               onChange={(e) => setNewProduct({ ...newProduct, wholesalePrice: Number(e.target.value) })}
                               placeholder="0"
                             />
@@ -4729,7 +4728,7 @@ export default function BusinessSalesSystem() {
                             <Input
                               id="product-cost"
                               type="number"
-                              value={newProduct.cost}
+                              value={newProduct.cost || ""}
                               onChange={(e) => setNewProduct({ ...newProduct, cost: Number(e.target.value) })}
                               placeholder="0"
                             />
@@ -4742,7 +4741,7 @@ export default function BusinessSalesSystem() {
                             <Input
                               id="product-stock"
                               type="number"
-                              value={newProduct.stock}
+                              value={newProduct.stock || ""}
                               onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
                               placeholder="0"
                             />
@@ -4752,8 +4751,9 @@ export default function BusinessSalesSystem() {
                             <Input
                               id="product-minstock"
                               type="number"
-                              value={newProduct.minStock}
+                              value={newProduct.minStock || ""}
                               onChange={(e) => setNewProduct({ ...newProduct, minStock: Number(e.target.value) })}
+                              onFocus={(e) => e.target.select()}
                               placeholder="1"
                               min="1"
                             />
@@ -4975,7 +4975,7 @@ export default function BusinessSalesSystem() {
                                     <Edit className="h-3 w-3" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
+                                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                                   <DialogHeader>
                                     <DialogTitle>Editar Producto</DialogTitle>
                                   </DialogHeader>
@@ -5041,7 +5041,7 @@ export default function BusinessSalesSystem() {
                       Crea, edita y elimina categorías para organizar tus productos
                     </p>
                   </div>
-                  <Dialog>
+                  <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -5196,13 +5196,14 @@ export default function BusinessSalesSystem() {
                 <CardTitle>Productos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
+                <div className="mb-4 flex gap-2">
                   <Input
                     placeholder="Buscar por nombre, SKU, código de barras..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full"
+                    className="flex-1"
                   />
+                  <BarcodeScanner onScan={(code) => setSearchTerm(code)} />
                 </div>
                 <div className="grid gap-2 max-h-96 overflow-y-auto">
                   {productsHook.searchProducts(searchTerm).map((product) => (
@@ -5345,14 +5346,14 @@ export default function BusinessSalesSystem() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Gestión de Proveedores</CardTitle>
-                  <Dialog>
+                  <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Agregar Proveedor
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Agregar Nuevo Proveedor</DialogTitle>
                       </DialogHeader>
@@ -5569,7 +5570,7 @@ export default function BusinessSalesSystem() {
                                     <Edit className="h-3 w-3" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
+                                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                                   <DialogHeader>
                                     <DialogTitle>Editar Proveedor</DialogTitle>
                                   </DialogHeader>
@@ -5935,7 +5936,7 @@ export default function BusinessSalesSystem() {
                           Agregar Cliente
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
                         </DialogHeader>
@@ -6720,7 +6721,7 @@ export default function BusinessSalesSystem() {
 
             {/* Diálogos Modales */}
             <Dialog open={showPurchaseOrderForm} onOpenChange={setShowPurchaseOrderForm}>
-              <DialogContent className="max-w-4xl max-h-[90vh]">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Crear Orden de Compra</DialogTitle>
                   <DialogDescription>
@@ -6739,7 +6740,7 @@ export default function BusinessSalesSystem() {
             </Dialog>
 
             <Dialog open={showReceiveProductsForm} onOpenChange={setShowReceiveProductsForm}>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Recepcionar Productos</DialogTitle>
                   <DialogDescription>
@@ -6762,7 +6763,7 @@ export default function BusinessSalesSystem() {
             </Dialog>
 
             <Dialog open={showCreateReturnForm} onOpenChange={setShowCreateReturnForm}>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Crear Devolución a Proveedor</DialogTitle>
                   <DialogDescription>
@@ -7065,15 +7066,17 @@ export default function BusinessSalesSystem() {
   // ===========================================================================
   
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row pb-16 md:pb-0">
       <SidebarNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Sistema de Inventario</h1>
-            <p className="text-gray-600 mt-2">Panel de control y gestión</p>
+      <div className="flex-1 p-3 md:p-6 w-full max-w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto mt-14 md:mt-0">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Sistema de Inventario</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1">Panel de control y gestión</p>
           </div>
-          {renderContent()}
+          <div className="w-full overflow-hidden">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>

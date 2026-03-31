@@ -1,4 +1,18 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Resolver la URL de la API dinámicamente para soportar acceso desde red LAN
+const getApiBase = (): string => {
+  // Si hay variable de entorno explícita, usarla
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // En el navegador: usar el mismo hostname que el usuario abrió (funciona en LAN y localhost)
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:8000/api`;
+  }
+  // Fallback para SSR
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE = getApiBase();
 
 interface Supplier {
   id_proveedor: number;

@@ -97,3 +97,12 @@ body {
    variables CSS para modo claro/oscuro y personalizaciones
    para utilidades en Tailwind CSS.
 */
+
+/* Ocultar scrollbar en navegación móvil inferior */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
