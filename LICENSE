@@ -1,21 +1,21 @@
-MIT License
+Copyright (c) 2026 Sistema de Inventario Trilaleo - Todos los derechos reservados.
 
-Copyright (c) 2025 TheFool
+AVISO LEGAL Y RESTRICCIONES DE USO PRIVADO
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Este software ("Sistema de Inventario Trilaleo") junto con su código fuente asociado, bases de datos, interfaces y documentación, son propiedad intelectual exclusiva de sus creadores y los administradores de Trilaleo.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Este es un sistema informático privado y propietario de uso empresarial para gestión de inventario, proveedores y punto de venta (POS). 
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+ESTE SOFTWARE NO ES DE CÓDIGO ABIERTO (OPEN SOURCE). 
+Quedan establecidos los siguientes términos de la licencia:
+
+1. USO EXCLUSIVO: El uso de este sistema está estrictamente limitado a las operaciones comerciales e internas autorizadas por Trilaleo.
+
+2. PROHIBICIÓN DE COPIA Y DISTRIBUCIÓN: Queda estrictamente prohibido copiar, alterar, modificar, fusionar, publicar, distribuir, sublicenciar, revender, o transferir por cualquier medio copias totales o parciales del sistema sin autorización expresa y por escrito de los propietarios.
+
+3. CONFIDENCIALIDAD: Toda la información estructurada, algoritmos y procesos contenidos en el código y base de datos son considerados información confidencial y secreto comercial.
+
+4. INGENIERÍA INVERSA: Se prohíbe terminantemente realizar pruebas de penetración no autorizadas, ingeniería inversa, descompilar, o intentar extraer el código y estructura de la base de datos de este programa.
+
+EXENCIÓN DE RESPONSABILIDADES:
+EL SOFTWARE SE PROPORCIONA "TAL CUAL" PARA EL USO INTERNO. EN NINGÚN CASO Y BAJO NINGUNA CIRCUNSTANCIA LEGAL LOS DESARROLLADORES O AUTORES ORIGINALES SERÁN RESPONSABLES DE RECLAMACIONES, PÉRDIDA DE DATOS, DAÑOS DIRECTOS O INDIRECTOS, U OTRA RESPONSABILIDAD QUE SURJA DEL USO INADECUADO O CONTINUO DE ESTE SISTEMA.
