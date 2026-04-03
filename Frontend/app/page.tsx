@@ -59,6 +59,7 @@ import { SidebarNav } from "@/components/sidebar-nav"
 import { SalesChart, ProductsPieChart, CategoryBarChart } from "@/components/chart-components"
 import { exportToExcel } from "@/utils/excel-export"
 import { BarcodeScanner } from "@/components/barcode-scanner"
+import { printThermalReceipt } from "@/utils/print-receipt"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -3536,7 +3537,25 @@ export default function BusinessSalesSystem() {
         addInventoryMovement: addInventoryMovementHook
       };
 
-      await completeSaleHook(saleData);
+      const ventaCreada = await completeSaleHook(saleData);
+
+      if (ventaCreada) {
+        const currentCart = [...cart];
+        const sub = currentSubtotal;
+        const disc = currentDiscount;
+        const tot = currentTotal;
+
+        setTimeout(() => {
+          printThermalReceipt({
+            saleNumber: ventaCreada.numero_venta || `V-${Date.now().toString().slice(-6)}`,
+            cart: currentCart,
+            subtotal: sub,
+            discount: disc,
+            total: tot,
+            date: new Date().toISOString()
+          });
+        }, 500);
+      }
 
       setCart([]);
       setSelectedCustomer(null);
@@ -5201,9 +5220,25 @@ export default function BusinessSalesSystem() {
                     placeholder="Buscar por nombre, SKU, código de barras..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchTerm.trim() !== '') {
+                        const match = productsHook.products.find(p => p.barcode === searchTerm || p.sku === searchTerm);
+                        if (match && match.stock > 0) {
+                          addToCart(match);
+                          setSearchTerm('');
+                        }
+                      }
+                    }}
                     className="flex-1"
                   />
-                  <BarcodeScanner onScan={(code) => setSearchTerm(code)} />
+                  <BarcodeScanner onScan={(code) => {
+                    const match = productsHook.products.find(p => p.barcode === code || p.sku === code);
+                    if (match && match.stock > 0) {
+                      addToCart(match);
+                    } else {
+                      setSearchTerm(code);
+                    }
+                  }} />
                 </div>
                 <div className="grid gap-2 max-h-96 overflow-y-auto">
                   {productsHook.searchProducts(searchTerm).map((product) => (
@@ -5268,7 +5303,16 @@ export default function BusinessSalesSystem() {
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          className="w-16 h-8 text-center px-1"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) updateCartQuantity(item.productId, val);
+                          }}
+                        />
                         <Button
                           size="sm"
                           variant="outline"
