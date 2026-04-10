@@ -29,14 +29,14 @@ export function MetricCard({ title, value, subtitle, icon: Icon, color, onClick 
       onClick={onClick}
     >
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-medium opacity-90">{title}</p>
-            <p className="text-3xl font-bold mt-2">{value}</p>
+            <p className="text-2xl md:text-3xl font-bold mt-2 truncate">{value}</p>
             {subtitle && <p className="text-sm opacity-75 mt-1">{subtitle}</p>}
           </div>
-          <div className="ml-4">
-            <Icon className="h-12 w-12 opacity-80" />
+          <div className="shrink-0">
+            <Icon className="h-10 w-10 md:h-12 md:w-12 opacity-80" />
           </div>
         </div>
       </CardContent>

@@ -4,8 +4,14 @@ const getApiBase = (): string => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  // En el navegador: usar el mismo hostname que el usuario abrió (funciona en LAN y localhost)
+  // En el navegador: detectar protocolo para evitar mixed content
   if (typeof window !== 'undefined') {
+    // Si estamos en HTTPS (servidor con proxy en puerto 3443),
+    // usar el mismo origen para que el proxy reenvíe a Django
+    if (window.location.protocol === 'https:') {
+      return `${window.location.protocol}//${window.location.host}/api`;
+    }
+    // En HTTP (dev server), conectar directo al backend Django
     return `http://${window.location.hostname}:8000/api`;
   }
   // Fallback para SSR

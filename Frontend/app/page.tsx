@@ -362,12 +362,16 @@ const EditProductForm: React.FC<{
         </div>
         <div>
           <Label htmlFor="edit-product-barcode">Código de Barras</Label>
-          <Input
-            id="edit-product-barcode"
-            value={editedProduct.barcode}
-            onChange={(e) => setEditedProduct({ ...editedProduct, barcode: e.target.value })}
-            placeholder="7501234567890"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="edit-product-barcode"
+              value={editedProduct.barcode}
+              onChange={(e) => setEditedProduct({ ...editedProduct, barcode: e.target.value })}
+              placeholder="7501234567890"
+              className="flex-1"
+            />
+            <BarcodeScanner onScan={(code) => setEditedProduct({ ...editedProduct, barcode: code })} />
+          </div>
         </div>
       </div>
       
@@ -4516,7 +4520,7 @@ export default function BusinessSalesSystem() {
       case "dashboard":
         return (
           <div className="space-y-6">
-            <Card className="border-l-4 border-l-blue-600 shadow-md bg-white">
+            <Card className="shadow-md bg-white">
               <CardContent className="p-6 flex flex-col md:flex-row justify-between items-center">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">Panel de Control</h2>
@@ -5308,6 +5312,7 @@ export default function BusinessSalesSystem() {
                           min="1"
                           className="w-16 h-8 text-center px-1"
                           value={item.quantity}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
                             const val = parseInt(e.target.value);
                             if (!isNaN(val)) updateCartQuantity(item.productId, val);
@@ -7118,7 +7123,7 @@ export default function BusinessSalesSystem() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Sistema de Inventario</h1>
             <p className="text-sm md:text-base text-gray-600 mt-1">Panel de control y gestión</p>
           </div>
-          <div className="w-full overflow-hidden">
+          <div className="w-full overflow-x-clip">
             {renderContent()}
           </div>
         </div>
