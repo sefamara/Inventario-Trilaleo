@@ -47,7 +47,9 @@ yarn-error.log*
 # OS X
 .DS_Store
 
-# Archivos de la nube y despliegue (Omitimos los scripts locales que el usuario no necesita en prod)
+# Archivos de la nube y despliegue
 DB_Trilaleo/
 *.sql
-*.bat
+
+# Certificados SSL auto-generados
+**/certs/
