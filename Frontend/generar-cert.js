@@ -12,6 +12,7 @@ const { spawnSync } = require('child_process');
 const CERT_DIR = path.join(__dirname, 'certs');
 const CERT_FILE = path.join(CERT_DIR, 'server.crt');
 const KEY_FILE = path.join(CERT_DIR, 'server.key');
+const CERT_IP_FILE = path.join(CERT_DIR, 'server-ip.txt');
 const localIP = process.argv[2] || '127.0.0.1';
 
 // Crear directorio si no existe
@@ -19,10 +20,18 @@ if (!fs.existsSync(CERT_DIR)) {
   fs.mkdirSync(CERT_DIR, { recursive: true });
 }
 
-// Si ya existen los certificados, no hacer nada
+// Si ya existen los certificados para la misma IP, no hacer nada.
+// Si la IP de la red cambió, regenerar para que el certificado incluya el SAN correcto.
 if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
-  console.log('✅ Certificados ya existen, omitiendo generacion.');
-  process.exit(0);
+  const previousIP = fs.existsSync(CERT_IP_FILE) ? fs.readFileSync(CERT_IP_FILE, 'utf8').trim() : '';
+  if (previousIP === localIP) {
+    console.log('✅ Certificados ya existen, omitiendo generacion.');
+    process.exit(0);
+  }
+
+  console.log(`🔄 La IP LAN cambió (${previousIP || 'desconocida'} → ${localIP}); regenerando certificado...`);
+  try { fs.unlinkSync(CERT_FILE); } catch {}
+  try { fs.unlinkSync(KEY_FILE); } catch {}
 }
 
 console.log('🔐 Generando certificados SSL para HTTPS...');
@@ -108,6 +117,7 @@ const opensslPath = findOpenSSL();
 if (opensslPath) {
   try {
     generateWithOpenSSL(opensslPath);
+    fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
     console.log('✅ Certificado SSL generado correctamente.');
     console.log(`   Válido para: localhost, 127.0.0.1, ${localIP}`);
     process.exit(0);
@@ -167,6 +177,7 @@ const psResult = spawnSync('powershell', [
 
 if (psResult.status === 0 && psResult.stdout.includes('OK')) {
   if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
+    fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
     console.log('✅ Certificado SSL generado con PowerShell correctamente.');
     console.log(`   Válido para: localhost, 127.0.0.1, ${localIP}`);
     process.exit(0);

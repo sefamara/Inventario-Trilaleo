@@ -60,6 +60,7 @@ import { SalesChart, ProductsPieChart, CategoryBarChart } from "@/components/cha
 import { exportToExcel } from "@/utils/excel-export"
 import { BarcodeScanner } from "@/components/barcode-scanner"
 import { printThermalReceipt } from "@/utils/print-receipt"
+import { useKeyboardBarcodeScanner } from "@/hooks/use-keyboard-barcode-scanner"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -333,6 +334,11 @@ const EditProductForm: React.FC<{
   categories: any[];
 }> = ({ product, onSave, onCancel, categories }) => {
   const [editedProduct, setEditedProduct] = useState(product)
+
+  useKeyboardBarcodeScanner({
+    active: true,
+    onScan: (code) => setEditedProduct((current) => ({ ...current, barcode: code })),
+  })
 
   const handleSave = () => {
     onSave(editedProduct)
@@ -3496,6 +3502,40 @@ export default function BusinessSalesSystem() {
   const addToCart = (product: Product) => {
     addToCartHook(product, isWholesaleSale, selectedCustomer, cart, setCart);
   };
+
+  useKeyboardBarcodeScanner({
+    active: isAddProductOpen && !isEditDialogOpen,
+    onScan: (code) => {
+      setNewProduct((current) => ({ ...current, barcode: code }));
+      setNotifications(prev => [{
+        type: 'info',
+        message: `Código de barras capturado: ${code}`,
+        timestamp: new Date()
+      }, ...prev.slice(0, 4)]);
+    },
+  });
+
+  useKeyboardBarcodeScanner({
+    active: activeTab === "sales" && !isAddProductOpen && !isEditDialogOpen,
+    onScan: (code) => {
+      const match = productsHook.products.find(p => p.barcode === code || p.sku === code);
+
+      if (match && match.stock > 0) {
+        addToCart(match);
+        setSearchTerm("");
+        return;
+      }
+
+      setSearchTerm(code);
+      setNotifications(prev => [{
+        type: 'warning',
+        message: match
+          ? `Producto "${match.name}" sin stock`
+          : `No se encontró producto con código ${code}`,
+        timestamp: new Date()
+      }, ...prev.slice(0, 4)]);
+    },
+  });
 
   const removeFromCart = (productId: number) => {
     removeFromCartHook(productId, cart, setCart);

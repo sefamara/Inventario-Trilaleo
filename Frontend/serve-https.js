@@ -20,16 +20,32 @@ const CERT_DIR = path.join(__dirname, 'certs');
 const CERT_FILE = path.join(CERT_DIR, 'server.crt');
 const KEY_FILE = path.join(CERT_DIR, 'server.key');
 
-function getLocalIP() {
+function getLocalIPs() {
   const interfaces = os.networkInterfaces();
+  const ignoredNames = /virtual|vmware|vbox|hyper-v|loopback|bluetooth|wsl|docker/i;
+  const addresses = [];
+
   for (const name of Object.keys(interfaces)) {
+    if (ignoredNames.test(name)) continue;
+
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
+        addresses.push(iface.address);
       }
     }
   }
-  return '127.0.0.1';
+
+  if (addresses.length > 0) return addresses;
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        addresses.push(iface.address);
+      }
+    }
+  }
+
+  return addresses.length > 0 ? addresses : ['127.0.0.1'];
 }
 
 // MIME types
@@ -190,7 +206,7 @@ function main() {
   };
 
   const server = https.createServer(options, handleRequest);
-  const localIP = getLocalIP();
+  const localIPs = getLocalIPs();
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log('');
@@ -199,12 +215,15 @@ function main() {
     console.log('========================================================');
     console.log('');
     console.log(`  PC local:    https://localhost:${PORT}`);
-    console.log(`  Red LAN:     https://${localIP}:${PORT}`);
+    console.log('  Red LAN:');
+    localIPs.forEach((ip) => {
+      console.log(`              https://${ip}:${PORT}`);
+    });
     console.log('');
     console.log(`  📡 Proxy API: /api/* → http://127.0.0.1:${DJANGO_PORT}/api/*`);
     console.log('');
     console.log('  📱 Abre en tu celular:');
-    console.log(`     https://${localIP}:${PORT}`);
+    console.log(`     https://${localIPs[0]}:${PORT}`);
     console.log('');
     console.log('  Presiona Ctrl+C para detener');
     console.log('========================================================');

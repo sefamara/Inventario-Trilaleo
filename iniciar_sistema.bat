@@ -13,9 +13,19 @@ set "PROJECT_DIR=%~dp0"
 
 :: Detectar IP local para exponer servidor
 echo Detectando direccion IP de la red local...
-for /f "delims=" %%i in ('powershell -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi','Ethernet' -ErrorAction SilentlyContinue | Select-Object -First 1).IPAddress"') do set LOCAL_IP=%%i
+for /f "delims=" %%i in ('powershell -NoProfile -Command "$ip=(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' -and $_.IPv4Address } | Select-Object -First 1 -ExpandProperty IPv4Address).IPAddress; if (-not $ip) { $ip=(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { -not $_.IPAddress.StartsWith('127.') -and $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1 -ExpandProperty IPAddress }; $ip"') do set LOCAL_IP=%%i
 if "%LOCAL_IP%"=="" set LOCAL_IP=127.0.0.1
 echo IP Local detectada: %LOCAL_IP%
+echo.
+
+echo Verificando regla de Firewall para el puerto 3443...
+netsh advfirewall firewall add rule name="Sistema Inventario Trilaleo HTTPS 3443" dir=in action=allow protocol=TCP localport=3443 >nul 2>nul
+if errorlevel 1 (
+    echo     No se pudo crear la regla automaticamente. Si el celular no conecta,
+    echo     permite Node.js en Windows Firewall o abre manualmente el puerto 3443.
+) else (
+    echo     Regla de Firewall lista para el puerto 3443.
+)
 echo.
 
 :: --------------------------------------------------------
@@ -38,23 +48,19 @@ start "Frontend HTTP - Trilaleo" cmd /k "cd /d %PROJECT_DIR%Frontend && npm run 
 :: --------------------------------------------------------
 echo [3/3] Preparando servidor HTTPS para movil (puerto 3443)...
 
-:: Compilar si la carpeta 'out' no existe
-if not exist "%PROJECT_DIR%Frontend\out\index.html" (
-    echo.
-    echo     La primera vez hay que compilar el frontend.
-    echo     Esto puede tardar 1-2 minutos...
-    echo.
-    cd /d "%PROJECT_DIR%Frontend"
-    call npm run build
-    echo.
-)
+:: Compilar siempre el frontend estatico que usa el servidor HTTPS movil
+echo.
+echo     Compilando frontend para el servidor HTTPS movil...
+echo     Esto asegura que el celular vea la ultima version del sistema.
+echo.
+cd /d "%PROJECT_DIR%Frontend"
+call npm run build
+echo.
 
 :: Generar certificado SSL si no existe (solo la primera vez)
-if not exist "%PROJECT_DIR%Frontend\certs\server.crt" (
-    echo     Generando certificado SSL ^(solo la primera vez^)...
-    cd /d "%PROJECT_DIR%Frontend"
-    node generar-cert.js %LOCAL_IP%
-)
+echo     Verificando certificado SSL para la IP %LOCAL_IP%...
+cd /d "%PROJECT_DIR%Frontend"
+node generar-cert.js %LOCAL_IP%
 
 :: Lanzar servidor HTTPS
 start "Frontend HTTPS Movil - Trilaleo" cmd /k "cd /d %PROJECT_DIR%Frontend && node serve-https.js"
