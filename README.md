@@ -14,19 +14,15 @@ Un sistema web completo para la administración, ventas y control de inventario.
 
 ---
 
-## 🛠️ Requisitos de Instalación (Prerrequisitos)
+## 🛠️ Requisitos de Instalación
 
-Para que el sistema funcione en la computadora principal que hará de servidor, se necesita instalar:
+En Windows 10 u 11, el instalador puede descargar automáticamente los programas necesarios mediante `winget`. Solo se requiere:
 
-1. **Python** (Versión 3.10 o superior)
-   - Requerido para el Backend (Django).
-   - ⚠️ **Importante**: Al instalar en Windows, asegúrate de marcar la casilla **"Add Python to PATH"**.
-2. **Node.js** (Versión 18 o superior - Recomendada versión LTS)
-   - Requerido para el Frontend (Next.js y React).
-3. **MySQL Server** (Versión 8 o superior)
-   - El motor de base de datos donde se alojará todo tu inventario.
-4. **Git**
-   - Necesario para descargar el proyecto y recibir futuras actualizaciones.
+- Una conexión a internet durante la primera instalación.
+- Permisos de administrador.
+- `winget`, incluido normalmente con **App Installer** de Windows.
+
+El instalador detecta y, cuando sea necesario, instala Python 3.12, Node.js LTS y MySQL Server. Git es opcional si el proyecto se descarga como archivo ZIP.
 
 ---
 
@@ -47,14 +43,16 @@ También se puede descargar el archivo ZIP desde GitHub y extraerlo en cualquier
 
 ### 2. Ejecutar el sistema
 
-Haz doble clic en `iniciar_sistema.bat`. Si detecta una instalación nueva, abrirá automáticamente el configurador. También se puede ejecutar directamente:
+Haz doble clic en `iniciar_sistema.bat`. Si detecta una instalación nueva, solicitará permisos de administrador e instalará automáticamente los requisitos y el proyecto. También se puede iniciar el proceso directamente con:
 
 ```powershell
-.\configurar_sistema.bat
+.\instalar_requisitos.bat
 ```
 
-El configurador realizará estas tareas:
+El instalador realizará estas tareas:
 
+- Instalará Python 3.12, Node.js LTS y MySQL Server si no están presentes.
+- Inicializará MySQL como servicio de Windows en una instalación nueva.
 - Creará el entorno virtual `django_entorno`.
 - Instalará las dependencias de Python.
 - Instalará las dependencias de Next.js con `npm ci`.
@@ -64,7 +62,7 @@ El configurador realizará estas tareas:
 - Guardará las credenciales locales en `Backend/.env`.
 - Ejecutará todas las migraciones de Django.
 
-Durante la configuración solicitará el usuario administrador de MySQL, que normalmente es `root`, y MySQL pedirá su contraseña. Esa contraseña se usa únicamente para crear la base y el usuario de la aplicación: no se guarda en el proyecto.
+Si MySQL se instala por primera vez, pedirá definir y confirmar una contraseña administrativa. Si MySQL ya existía, solicitará el usuario administrador, normalmente `root`, y su contraseña actual. La aplicación tendrá un usuario y una contraseña aleatoria independientes.
 
 Después de finalizar, `iniciar_sistema.bat` continuará con el arranque. La primera ejecución puede tardar varios minutos mientras descarga dependencias y compila el frontend.
 
@@ -84,7 +82,7 @@ Esto vuelve a crear la conexión privada sin tener que reinstalar Python o Node.
 
 La carpeta `DB_Trilaleo` y los archivos `.sql` están excluidos de GitHub para evitar publicar información real del inventario o datos privados.
 
-Si otra persona necesita una copia del inventario existente, debes entregarle una exportación SQL por un medio privado. Después deberá crear la base `inventario_trilaleo` e importar ese archivo con MySQL. Si solo necesita comenzar con un inventario vacío, basta con ejecutar `python manage.py migrate` como se indicó anteriormente.
+Si otra persona necesita una copia del inventario existente, debes entregarle una exportación SQL por un medio privado. Después podrá colocar los respaldos en `DB_Trilaleo` y ejecutar `importar_db.bat`. Si solo necesita comenzar con un inventario vacío, el configurador creará automáticamente todas las tablas.
 
 ---
 

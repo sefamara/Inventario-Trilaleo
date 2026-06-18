@@ -19,15 +19,18 @@ if not exist "%PROJECT_DIR%Backend\.env" set "NEEDS_SETUP=1"
 
 if "%NEEDS_SETUP%"=="1" (
     echo Se detecto una instalacion nueva o incompleta.
-    echo Iniciando configuracion automatica...
+    echo Iniciando instalacion y configuracion automatica...
     echo.
-    call "%PROJECT_DIR%configurar_sistema.bat" --no-pause
+    call "%PROJECT_DIR%instalar_requisitos.bat" --no-pause
     if errorlevel 1 (
         echo.
         echo No se puede iniciar el sistema hasta completar la configuracion.
         pause
         exit /b 1
     )
+    :: La instalacion elevada actualiza el PATH del registro. Recargarlo
+    :: en esta consola para poder usar node y npm inmediatamente.
+    for /f "usebackq delims=" %%P in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')"`) do set "PATH=%%P"
     echo.
 )
 
