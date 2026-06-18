@@ -4,7 +4,7 @@ Un sistema web completo para la administración, ventas y control de inventario.
 
 ---
 
-## 🌟 Características Principales
+## Características Principales
 - **Acceso LAN (Red Local):** Funciona en la red Wi-Fi local, permitiendo conectar múltiples dispositivos al mismo tiempo (PC principal, tablets y celulares de vendedores).
 - **Diseño Responsivo:** Se adapta perfectamente a la pantalla de celulares con un menú inferior y a computadoras con un menú lateral clásico.
 - **Escáner de Código de Barras (Móvil):** Al acceder desde un celular, muestra una opción para usar la cámara nativa del teléfono para detectar y registrar códigos de barra.
@@ -14,7 +14,7 @@ Un sistema web completo para la administración, ventas y control de inventario.
 
 ---
 
-## 🛠️ Requisitos de Instalación
+## Requisitos de Instalación
 
 En Windows 10 u 11, el instalador puede descargar automáticamente los programas necesarios mediante `winget`. Solo se requiere:
 
@@ -26,7 +26,7 @@ El instalador detecta y, cuando sea necesario, instala Python 3.12, Node.js LTS 
 
 ---
 
-## 🚀 Primera Instalación Después de Clonar el Repositorio
+## Primera Instalación Después de Clonar el Repositorio
 
 Los entornos, las dependencias, los certificados y las credenciales locales no se guardan en GitHub. El proyecto incluye un configurador que prepara todo automáticamente en cada computadora nueva.
 
@@ -78,7 +78,7 @@ Esto vuelve a crear la conexión privada sin tener que reinstalar Python o Node.
 
 ---
 
-## 🗄️ Transferir una Base de Datos Existente
+## Transferir una Base de Datos Existente
 
 La carpeta `DB_Trilaleo` y los archivos `.sql` están excluidos de GitHub para evitar publicar información real del inventario o datos privados.
 
@@ -86,7 +86,7 @@ Si otra persona necesita una copia del inventario existente, debes entregarle un
 
 ---
 
-## ▶️ Cómo Iniciar y Detener el Sistema
+## Cómo Iniciar y Detener el Sistema
 
 Después de completar la primera instalación, el proyecto incluye scripts para iniciar y detener los servicios en Windows. En los siguientes usos no volverá a solicitar la configuración.
 
@@ -119,7 +119,7 @@ Haz doble clic en el archivo **`detener_sistema.bat`**.
 
 ---
 
-## ☁️ Subir Cambios a GitHub
+## Subir Cambios a GitHub
 
 Si modificas el código o quieres respaldar avances en internet, puedes abrir una consola de comandos (CMD o PowerShell) en la carpeta principal del proyecto y ejecutar, uno por uno, estos tres comandos:
 
