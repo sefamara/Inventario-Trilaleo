@@ -21,8 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env(
     DEBUG=(bool, True)
 )
-# Leer del archivo .env local si existe en desarrollo
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+# La configuracion automatica crea este archivo local, que nunca se sube a Git.
+ENV_FILE = BASE_DIR / '.env'
+environ.Env.read_env(str(ENV_FILE))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -90,7 +91,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': env('DB_NAME', default='inventario_trilaleo'),
         'USER': env('DB_USER', default='root'),
-        'PASSWORD': env('DB_PASSWORD', default='GodTracker.,$01'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
         'HOST': env('DB_HOST', default='127.0.0.1'),
         'PORT': env('DB_PORT', default='3306'),
     }

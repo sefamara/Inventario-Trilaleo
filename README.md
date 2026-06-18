@@ -32,11 +32,9 @@ Para que el sistema funcione en la computadora principal que hará de servidor, 
 
 ## 🚀 Primera Instalación Después de Clonar el Repositorio
 
-Los entornos virtuales, las dependencias, los certificados y la base de datos local no se guardan en GitHub. Por eso, cada computadora que ejecute el sistema por primera vez debe completar estos pasos.
+Los entornos, las dependencias, los certificados y las credenciales locales no se guardan en GitHub. El proyecto incluye un configurador que prepara todo automáticamente en cada computadora nueva.
 
 ### 1. Clonar el repositorio
-
-Abre PowerShell o CMD y ejecuta:
 
 ```powershell
 git clone URL_DEL_REPOSITORIO
@@ -45,98 +43,40 @@ cd Sistema_Inventario_Trilaleo
 
 Reemplaza `URL_DEL_REPOSITORIO` por la dirección HTTPS del repositorio en GitHub.
 
-### 2. Crear el entorno virtual de Python
+También se puede descargar el archivo ZIP desde GitHub y extraerlo en cualquier carpeta.
 
-Desde la carpeta principal del proyecto:
+### 2. Ejecutar el sistema
 
-```powershell
-python -m venv django_entorno
-.\django_entorno\Scripts\Activate.ps1
-pip install -r Backend\requirements.txt
-```
-
-Si PowerShell bloquea la activación del entorno virtual, ejecuta una vez:
+Haz doble clic en `iniciar_sistema.bat`. Si detecta una instalación nueva, abrirá automáticamente el configurador. También se puede ejecutar directamente:
 
 ```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+.\configurar_sistema.bat
 ```
 
-Después vuelve a ejecutar:
+El configurador realizará estas tareas:
 
-```powershell
-.\django_entorno\Scripts\Activate.ps1
+- Creará el entorno virtual `django_entorno`.
+- Instalará las dependencias de Python.
+- Instalará las dependencias de Next.js con `npm ci`.
+- Localizará MySQL Server aunque no esté agregado al `PATH`.
+- Creará la base de datos `inventario_trilaleo`.
+- Creará el usuario privado `trilaleo_app` con una contraseña aleatoria.
+- Guardará las credenciales locales en `Backend/.env`.
+- Ejecutará todas las migraciones de Django.
+
+Durante la configuración solicitará el usuario administrador de MySQL, que normalmente es `root`, y MySQL pedirá su contraseña. Esa contraseña se usa únicamente para crear la base y el usuario de la aplicación: no se guarda en el proyecto.
+
+Después de finalizar, `iniciar_sistema.bat` continuará con el arranque. La primera ejecución puede tardar varios minutos mientras descarga dependencias y compila el frontend.
+
+### Reparar la conexión de MySQL
+
+Si se cambia o reinstala MySQL, abre CMD en la carpeta del proyecto y ejecuta:
+
+```bat
+configurar_sistema.bat --database
 ```
 
-### 3. Instalar las dependencias del frontend
-
-```powershell
-cd Frontend
-npm ci
-cd ..
-```
-
-### 4. Crear la base de datos MySQL
-
-Asegúrate de que MySQL Server esté iniciado. Luego entra a MySQL:
-
-```powershell
-mysql -u root -p
-```
-
-Dentro de MySQL ejecuta:
-
-```sql
-CREATE DATABASE inventario_trilaleo
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-EXIT;
-```
-
-### 5. Configurar las credenciales de la base de datos
-
-Crea un archivo llamado `.env` dentro de la carpeta `Backend`, es decir:
-
-```text
-Backend/.env
-```
-
-Agrega el siguiente contenido y reemplaza `TU_CONTRASENA_MYSQL` por la contraseña configurada en MySQL:
-
-```env
-DB_NAME=inventario_trilaleo
-DB_USER=root
-DB_PASSWORD=TU_CONTRASENA_MYSQL
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DEBUG=True
-ALLOWED_HOSTS=*
-```
-
-El archivo `.env` contiene datos privados y está excluido de GitHub mediante `.gitignore`.
-
-### 6. Crear las tablas del sistema
-
-Desde la carpeta principal del proyecto:
-
-```powershell
-.\django_entorno\Scripts\Activate.ps1
-cd Backend\inventario
-python manage.py migrate
-cd ..\..
-```
-
-Esto crea una base de datos nueva y vacía, lista para comenzar a registrar productos.
-
-### 7. Iniciar el sistema
-
-Ejecuta `iniciar_sistema.bat`, preferentemente como administrador para que pueda crear la regla de Windows Firewall correspondiente al acceso móvil:
-
-```powershell
-.\iniciar_sistema.bat
-```
-
-El primer inicio puede tardar un poco más porque se compila el frontend y se genera el certificado HTTPS local.
+Esto vuelve a crear la conexión privada sin tener que reinstalar Python o Node.js.
 
 ---
 
@@ -150,7 +90,7 @@ Si otra persona necesita una copia del inventario existente, debes entregarle un
 
 ## ▶️ Cómo Iniciar y Detener el Sistema
 
-Después de completar la primera instalación, el proyecto incluye scripts para iniciar y detener los servicios en Windows.
+Después de completar la primera instalación, el proyecto incluye scripts para iniciar y detener los servicios en Windows. En los siguientes usos no volverá a solicitar la configuración.
 
 ### Iniciar el Sistema
 Haz doble clic en **`iniciar_sistema.bat`** o ejecútalo desde PowerShell.
