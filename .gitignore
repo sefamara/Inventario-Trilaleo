@@ -44,6 +44,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Respaldos locales de la base de datos
+Backups/
+
 # OS X
 .DS_Store
 

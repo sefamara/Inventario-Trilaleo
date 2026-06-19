@@ -240,6 +240,14 @@ if (-not $script:Winget) {
     throw "winget no esta disponible. Instala App Installer desde Microsoft Store y vuelve a intentarlo."
 }
 
+Write-Step "Verificando Git"
+if (-not (Find-CommandPath "git.exe")) {
+    Install-WingetPackage "Git.Git" "Git"
+}
+else {
+    Write-Host "Git ya esta instalado."
+}
+
 Write-Step "Verificando Python"
 if (-not (Test-PythonVersion)) {
     Install-WingetPackage "Python.Python.3.12" "Python 3.12"

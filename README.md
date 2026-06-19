@@ -5,7 +5,7 @@ Un sistema web completo para la administración, ventas y control de inventario.
 ---
 
 ## Características Principales
-- **Acceso LAN (Red Local):** Funciona en la red Wi-Fi local, permitiendo conectar múltiples dispositivos al mismo tiempo (PC principal, tablets y celulares de vendedores).
+- **Acceso LAN (Red Local):** Funciona mediante la dirección IP del PC dentro de la red Wi-Fi, permitiendo conectar múltiples dispositivos al mismo tiempo.
 - **Diseño Responsivo:** Se adapta perfectamente a la pantalla de celulares con un menú inferior y a computadoras con un menú lateral clásico.
 - **Escáner de Código de Barras (Móvil):** Al acceder desde un celular, muestra una opción para usar la cámara nativa del teléfono para detectar y registrar códigos de barra.
 - **Punto de Venta:** Registro rápido de ventas al por menor y al por mayor.
@@ -22,7 +22,7 @@ En Windows 10 u 11, el instalador puede descargar automáticamente los programas
 - Permisos de administrador.
 - `winget`, incluido normalmente con **App Installer** de Windows.
 
-El instalador detecta y, cuando sea necesario, instala Python 3.12, Node.js LTS y MySQL Server. Git es opcional si el proyecto se descarga como archivo ZIP.
+El instalador detecta y, cuando sea necesario, instala Git, Python 3.12, Node.js LTS y MySQL Server. Git es necesario para recibir actualizaciones automáticas; la descarga ZIP solo permite una instalación sin actualizaciones.
 
 ---
 
@@ -52,6 +52,7 @@ Haz doble clic en `iniciar_sistema.bat`. Si detecta una instalación nueva, soli
 El instalador realizará estas tareas:
 
 - Instalará Python 3.12, Node.js LTS y MySQL Server si no están presentes.
+- Instalará Git si no está presente.
 - Inicializará MySQL como servicio de Windows en una instalación nueva.
 - Creará el entorno virtual `django_entorno`.
 - Instalará las dependencias de Python.
@@ -95,13 +96,13 @@ Haz doble clic en **`iniciar_sistema.bat`** o ejecútalo desde PowerShell.
 - El script activará el entorno del backend y arrancará Django y Next.js automáticamente.
 - Compilará la versión HTTPS utilizada por los celulares.
 - Generará o actualizará el certificado local para la dirección IP actual del PC.
-- Intentará permitir el puerto `3443` en Windows Firewall.
+- Intentará permitir HTTPS por TCP `3443` en Windows Firewall.
 - **Abrirá tu navegador predeterminado** directamente en la página del sistema.
 
 Direcciones de acceso:
 
 - **Desde el PC:** `http://localhost:3000`
-- **Desde un celular:** `https://IP_DEL_PC:3443`
+- **Desde otro PC o celular:** `https://IP_DEL_PC:3443`
 
 El script mostrará la dirección móvil exacta, por ejemplo:
 
@@ -111,11 +112,25 @@ https://192.168.1.15:3443
 
 El celular y el PC deben estar conectados a la misma red Wi-Fi. La primera vez, el navegador del celular mostrará una advertencia de seguridad porque el certificado es local; selecciona **Avanzado** y luego **Continuar de todos modos**.
 
-Si el celular no logra conectarse, ejecuta `iniciar_sistema.bat` como administrador y verifica que Windows Firewall permita Node.js o las conexiones TCP entrantes por el puerto `3443`.
+El celular y el PC deben estar conectados a la misma red Wi-Fi. La primera vez, el navegador mostrará una advertencia por el certificado local; selecciona **Avanzado** y luego **Continuar de todos modos**.
 
 ### Detener el Sistema
 Haz doble clic en el archivo **`detener_sistema.bat`**.
 - Cerrará los procesos utilizados por el backend y el frontend.
+
+### Actualizar el Sistema
+
+Si el proyecto fue clonado con Git, haz doble clic en **`actualizar_sistema.bat`**. El actualizador:
+
+- Comprobará que no existan cambios locales sin guardar.
+- Detendrá los servicios.
+- Creará un respaldo de MySQL en `Backups`.
+- Descargará los cambios con `git pull --ff-only`.
+- Actualizará las dependencias de Python y Next.js.
+- Compilará el frontend y aplicará las migraciones.
+- Reiniciará el sistema únicamente si todo termina correctamente.
+
+Los productos y ventas permanecen en MySQL y no se reemplazan al actualizar. Se conservan los diez respaldos más recientes.
 
 ---
 

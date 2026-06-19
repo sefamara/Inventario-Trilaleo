@@ -25,16 +25,16 @@ if (!fs.existsSync(CERT_DIR)) {
 if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
   const previousIP = fs.existsSync(CERT_IP_FILE) ? fs.readFileSync(CERT_IP_FILE, 'utf8').trim() : '';
   if (previousIP === localIP) {
-    console.log('✅ Certificados ya existen, omitiendo generacion.');
+    console.log('Certificados ya existen, omitiendo generacion.');
     process.exit(0);
   }
 
-  console.log(`🔄 La IP LAN cambió (${previousIP || 'desconocida'} → ${localIP}); regenerando certificado...`);
+  console.log('La direccion IP LAN cambio; regenerando certificado...');
   try { fs.unlinkSync(CERT_FILE); } catch {}
   try { fs.unlinkSync(KEY_FILE); } catch {}
 }
 
-console.log('🔐 Generando certificados SSL para HTTPS...');
+console.log('Generando certificados SSL para HTTPS...');
 
 // Rutas donde puede estar OpenSSL en Windows
 const opensslCandidates = [
@@ -61,9 +61,6 @@ function findOpenSSL() {
 }
 
 function generateWithOpenSSL(opensslPath) {
-  const subj = `/CN=InventarioTrilaleo/O=Trilaleo/C=CL`;
-  const san = `subj_alt_name`;
-
   // Crear archivo de configuración con SAN (Subject Alternative Name)
   // para que el browser acepte el certificado
   const confContent = `[req]
@@ -85,7 +82,6 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 
 [alt_names]
 DNS.1 = localhost
-DNS.2 = *.local
 IP.1 = 127.0.0.1
 IP.2 = ${localIP}
 `;
@@ -118,16 +114,16 @@ if (opensslPath) {
   try {
     generateWithOpenSSL(opensslPath);
     fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
-    console.log('✅ Certificado SSL generado correctamente.');
-    console.log(`   Válido para: localhost, 127.0.0.1, ${localIP}`);
+    console.log('Certificado SSL generado correctamente.');
+    console.log(`   Valido para: localhost, 127.0.0.1, ${localIP}`);
     process.exit(0);
   } catch (err) {
-    console.error('❌ Error generando con OpenSSL:', err.message);
+    console.error('Error generando con OpenSSL:', err.message);
   }
 }
 
 // ----- Fallback: PowerShell + exportar PEM con .NET -----
-console.log('🔄 OpenSSL no disponible, usando PowerShell...');
+console.log('OpenSSL no disponible, usando PowerShell...');
 
 const psScript = `
 $certDir = '${CERT_DIR.replace(/\\/g, '\\\\')}';
@@ -178,13 +174,13 @@ const psResult = spawnSync('powershell', [
 if (psResult.status === 0 && psResult.stdout.includes('OK')) {
   if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
     fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
-    console.log('✅ Certificado SSL generado con PowerShell correctamente.');
-    console.log(`   Válido para: localhost, 127.0.0.1, ${localIP}`);
+    console.log('Certificado SSL generado con PowerShell correctamente.');
+    console.log(`   Valido para: localhost, 127.0.0.1, ${localIP}`);
     process.exit(0);
   }
 }
 
-console.error('❌ No se pudo generar el certificado SSL.');
+console.error('No se pudo generar el certificado SSL.');
 console.error('   Salida de PowerShell:', psResult.stdout, psResult.stderr);
 console.error('');
 console.error('   Solución: Instala Git for Windows (ya incluye OpenSSL)');

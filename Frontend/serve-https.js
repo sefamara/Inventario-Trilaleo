@@ -3,7 +3,7 @@
  * 
  * - Sirve los archivos estáticos del build (carpeta 'out')
  * - Proxea las peticiones /api/* al backend Django (HTTP:8000)
- *   para evitar bloqueo de contenido mixto (HTTPS→HTTP)
+ *   para evitar bloqueo de contenido mixto (HTTPS a HTTP)
  * - Necesario para que la cámara funcione en móvil (getUserMedia requiere HTTPS)
  */
 
@@ -19,6 +19,7 @@ const OUT_DIR = path.join(__dirname, 'out');
 const CERT_DIR = path.join(__dirname, 'certs');
 const CERT_FILE = path.join(CERT_DIR, 'server.crt');
 const KEY_FILE = path.join(CERT_DIR, 'server.key');
+const preferredIP = process.argv[2];
 
 function getLocalIPs() {
   const interfaces = os.networkInterfaces();
@@ -29,7 +30,7 @@ function getLocalIPs() {
     if (ignoredNames.test(name)) continue;
 
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
+      if (iface.family === 'IPv4' && !iface.internal && !iface.address.startsWith('169.254.')) {
         addresses.push(iface.address);
       }
     }
@@ -103,7 +104,7 @@ function proxyToBackend(req, res) {
   });
 
   proxyReq.on('error', (err) => {
-    console.error('❌ Error conectando al backend Django:', err.message);
+    console.error('Error conectando al backend Django:', err.message);
     res.writeHead(502, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       error: 'No se pudo conectar al backend Django en puerto ' + DJANGO_PORT,
@@ -189,13 +190,13 @@ function handleRequest(req, res) {
 // Main
 function main() {
   if (!fs.existsSync(OUT_DIR)) {
-    console.error('❌ La carpeta "out" no existe.');
+    console.error('La carpeta "out" no existe.');
     console.error('   Ejecuta primero: npm run build');
     process.exit(1);
   }
 
   if (!fs.existsSync(CERT_FILE) || !fs.existsSync(KEY_FILE)) {
-    console.error('❌ Certificados SSL no encontrados.');
+    console.error('Certificados SSL no encontrados.');
     console.error('   Ejecuta: node generar-cert.js');
     process.exit(1);
   }
@@ -207,11 +208,12 @@ function main() {
 
   const server = https.createServer(options, handleRequest);
   const localIPs = getLocalIPs();
+  const primaryIP = preferredIP || localIPs[0];
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log('');
     console.log('========================================================');
-    console.log('  🔒 SERVIDOR HTTPS - Sistema de Inventario');
+    console.log('  SERVIDOR HTTPS - Sistema de Inventario');
     console.log('========================================================');
     console.log('');
     console.log(`  PC local:    https://localhost:${PORT}`);
@@ -220,10 +222,10 @@ function main() {
       console.log(`              https://${ip}:${PORT}`);
     });
     console.log('');
-    console.log(`  📡 Proxy API: /api/* → http://127.0.0.1:${DJANGO_PORT}/api/*`);
+    console.log(`  Proxy API: /api/* -> http://127.0.0.1:${DJANGO_PORT}/api/*`);
     console.log('');
-    console.log('  📱 Abre en tu celular:');
-    console.log(`     https://${localIPs[0]}:${PORT}`);
+    console.log('  Abre en tu celular:');
+    console.log(`     https://${primaryIP}:${PORT}`);
     console.log('');
     console.log('  Presiona Ctrl+C para detener');
     console.log('========================================================');

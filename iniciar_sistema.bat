@@ -72,20 +72,24 @@ start "Frontend HTTP - Trilaleo" /D "%PROJECT_DIR%Frontend" cmd /k "npm.cmd run 
 echo [3/3] Preparando servidor HTTPS para movil (puerto 3443)...
 
 :: Compilar siempre el frontend estatico que usa el servidor HTTPS movil
-echo.
-echo     Compilando frontend para el servidor HTTPS movil...
-echo     Esto asegura que el celular vea la ultima version del sistema.
-echo.
-cd /d "%PROJECT_DIR%Frontend"
-call npm.cmd run build
-if errorlevel 1 (
+if /I "%~1"=="--skip-build" (
+    echo     Usando la compilacion creada por el actualizador.
+) else (
     echo.
-    echo ERROR: No se pudo compilar el frontend.
-    echo Ejecuta configurar_sistema.bat para reparar las dependencias.
-    pause
-    exit /b 1
+    echo     Compilando frontend para el servidor HTTPS movil...
+    echo     Esto asegura que el celular vea la ultima version del sistema.
+    echo.
+    cd /d "%PROJECT_DIR%Frontend"
+    call npm.cmd run build
+    if errorlevel 1 (
+        echo.
+        echo ERROR: No se pudo compilar el frontend.
+        echo Ejecuta configurar_sistema.bat para reparar las dependencias.
+        pause
+        exit /b 1
+    )
+    echo.
 )
-echo.
 
 :: Generar certificado SSL si no existe (solo la primera vez)
 echo     Verificando certificado SSL para la IP %LOCAL_IP%...
@@ -93,7 +97,7 @@ cd /d "%PROJECT_DIR%Frontend"
 node generar-cert.js %LOCAL_IP%
 
 :: Lanzar servidor HTTPS
-start "Frontend HTTPS Movil - Trilaleo" /D "%PROJECT_DIR%Frontend" cmd /k "node serve-https.js"
+start "Frontend HTTPS Movil - Trilaleo" /D "%PROJECT_DIR%Frontend" cmd /k "node serve-https.js %LOCAL_IP%"
 
 timeout /t 6 /nobreak >nul
 
