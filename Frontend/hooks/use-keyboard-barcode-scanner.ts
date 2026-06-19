@@ -20,11 +20,34 @@ const isEditableTarget = (target: EventTarget | null): target is ScannerTarget =
   )
 }
 
-const restoreTargetValue = (target: ScannerTarget | null, originalValue: string) => {
+const restoreTargetValue = (
+  target: ScannerTarget | null,
+  originalValue: string,
+  selectionStart: number | null,
+  selectionEnd: number | null,
+) => {
   if (!target || document.activeElement !== target) return
 
-  target.value = originalValue
+  const prototype = target instanceof HTMLInputElement
+    ? HTMLInputElement.prototype
+    : HTMLTextAreaElement.prototype
+  const nativeValueSetter = Object.getOwnPropertyDescriptor(prototype, "value")?.set
+
+  if (nativeValueSetter) {
+    nativeValueSetter.call(target, originalValue)
+  } else {
+    target.value = originalValue
+  }
+
   target.dispatchEvent(new Event("input", { bubbles: true }))
+
+  if (selectionStart !== null && selectionEnd !== null) {
+    try {
+      target.setSelectionRange(selectionStart, selectionEnd)
+    } catch {
+      // Algunos tipos de input, como number, no permiten seleccionar texto.
+    }
+  }
 }
 
 export function useKeyboardBarcodeScanner({
@@ -40,6 +63,8 @@ export function useKeyboardBarcodeScanner({
   const timerRef = useRef<number | null>(null)
   const targetRef = useRef<ScannerTarget | null>(null)
   const originalValueRef = useRef("")
+  const selectionStartRef = useRef<number | null>(null)
+  const selectionEndRef = useRef<number | null>(null)
   const isFastSequenceRef = useRef(false)
 
   useEffect(() => {
@@ -54,6 +79,8 @@ export function useKeyboardBarcodeScanner({
       lastKeyAtRef.current = 0
       targetRef.current = null
       originalValueRef.current = ""
+      selectionStartRef.current = null
+      selectionEndRef.current = null
       isFastSequenceRef.current = false
 
       if (timerRef.current) {
@@ -67,12 +94,14 @@ export function useKeyboardBarcodeScanner({
       const isScannerInput = isFastSequenceRef.current && barcode.length >= minLength
       const target = targetRef.current
       const originalValue = originalValueRef.current
+      const selectionStart = selectionStartRef.current
+      const selectionEnd = selectionEndRef.current
 
       reset()
 
       if (!isScannerInput) return
 
-      restoreTargetValue(target, originalValue)
+      restoreTargetValue(target, originalValue, selectionStart, selectionEnd)
       onScanRef.current(barcode)
     }
 
@@ -115,6 +144,8 @@ export function useKeyboardBarcodeScanner({
       if (!bufferRef.current) {
         targetRef.current = isEditableTarget(event.target) ? event.target : null
         originalValueRef.current = targetRef.current ? targetRef.current.value : ""
+        selectionStartRef.current = targetRef.current?.selectionStart ?? null
+        selectionEndRef.current = targetRef.current?.selectionEnd ?? null
       } else if (delta > 0 && delta <= maxDelayMs) {
         isFastSequenceRef.current = true
       }
