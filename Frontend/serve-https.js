@@ -134,7 +134,15 @@ function serveStatic(req, res) {
   }
   
   let filePath = path.join(OUT_DIR, urlPath);
-  
+
+  const resolvedPath = path.resolve(filePath);
+  const resolvedOut = path.resolve(OUT_DIR);
+  if (!resolvedPath.startsWith(resolvedOut + path.sep) && resolvedPath !== resolvedOut) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
+
   if (!fs.existsSync(filePath)) {
     const indexPath = path.join(filePath, 'index.html');
     if (fs.existsSync(indexPath)) {

@@ -1,33 +1,91 @@
-# Entorno Virtual Python
+# ==============================================================
+# PYTHON / DJANGO
+# ==============================================================
 django_entorno/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pdb
 .Python
 env/
 venv/
 ENV/
+.venv/
+*.egg-info/
+*.egg
+.eggs/
+dist/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# Dependencias Node/Next.js
+# Django colecta estáticos y media uploads
+staticfiles/
+media/
+
+# ==============================================================
+# NODE / NEXT.JS
+# ==============================================================
 node_modules/
 .next/
 out/
 build/
 dist/
+.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# Variables de Entorno (Claves secretas)
+# TypeScript artefactos de build
+*.tsbuildinfo
+
+# ==============================================================
+# VARIABLES DE ENTORNO Y SECRETOS
+# ==============================================================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+*.env
 
-# Bases de datos y archivos locales SQLite (Si aplica)
+# ==============================================================
+# BASE DE DATOS
+# ==============================================================
 *.sqlite3
 db.sqlite3
 
-# Windows y Editores
+# Respaldos locales de la base de datos
+Backups/
+
+# Dump de DB para importación (generados localmente)
+DB_Trilaleo/
+*.sql
+
+# ==============================================================
+# CERTIFICADOS SSL AUTO-GENERADOS
+# ==============================================================
+**/certs/
+
+# ==============================================================
+# HERRAMIENTAS DE IA (no son parte del proyecto)
+# ==============================================================
+.agents/
+.codex/
+skills-lock.json
+
+# ==============================================================
+# EDITORES E IDEs
+# ==============================================================
 .vscode/
 .idea/
 *.suo
@@ -35,24 +93,37 @@ db.sqlite3
 *.njsproj
 *.sln
 *.sw?
-Thumbs.db
-Desktop.ini
+*.swp
+*~
 
-# Logs
+# ==============================================================
+# SISTEMA OPERATIVO
+# ==============================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ==============================================================
+# LOGS
+# ==============================================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Respaldos locales de la base de datos
-Backups/
-
-# OS X
-.DS_Store
-
-# Archivos de la nube y despliegue
-DB_Trilaleo/
-*.sql
-
-# Certificados SSL auto-generados
-**/certs/
+pnpm-debug.log*
+lerna-debug.log*
+logs/

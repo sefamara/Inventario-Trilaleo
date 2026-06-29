@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, status
-from django.db.models import  Q
+from django.db import transaction
+from django.db.models import Q
 from .models import Categoria, Producto, PresentacionProducto, Merma, Venta, DetalleVenta, Proveedor, MovimientoInventario, OrdenCompra, DetalleOrdenCompra, DevolucionProveedor
 from .serializers import *
 
@@ -342,7 +343,7 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"❌ [VIEWSET] Error eliminando movimientos: {str(e)}")
             return Response(
-                {"error": f"Error eliminando movimientos: {str(e)}"}, 
+                {"error": "Error eliminando movimientos"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -362,7 +363,7 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"❌ Error creando movimiento: {str(e)}")
             return Response(
-                {"error": f"Error creando movimiento: {str(e)}"}, 
+                {"error": "Error al procesar movimiento"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -404,7 +405,7 @@ class MovimientoInventarioViewSet(viewsets.ModelViewSet):
             import traceback
             print(f"📋 Traceback: {traceback.format_exc()}")
             return Response(
-                {"error": f"Error obteniendo movimientos: {str(e)}"}, 
+                {"error": "Error obteniendo movimientos"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -533,8 +534,8 @@ def delete_all_sales(request):
         
     except Exception as e:
         print(f"❌ Error eliminando ventas: {str(e)}")
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        return Response({"error": "Error eliminando ventas"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # @api_view(['GET'])
 # def lista_movimientos_inventario(request):
 #     """Lista todos los movimientos de inventario"""
@@ -579,8 +580,7 @@ def delete_all_inventory_movements(request):
         print(f"❌ [DEBUG] Error eliminando movimientos: {str(e)}")
         import traceback
         print(f"📋 [DEBUG] Traceback: {traceback.format_exc()}")
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        return Response({"error": "Error eliminando movimientos"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ACTUALIZAR Y EDICION DE PRODUCTOS

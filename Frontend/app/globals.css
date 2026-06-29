@@ -106,3 +106,75 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================================
+   ANIMACIONES DE INTERFAZ
+   ============================================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Entrada de contenido de tab */
+.tab-content {
+  animation: fadeInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Entrada de tarjetas métricas con stagger */
+.metric-card-animate {
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.metric-card-animate:nth-child(1) { animation-delay: 0ms;  }
+.metric-card-animate:nth-child(2) { animation-delay: 50ms; }
+.metric-card-animate:nth-child(3) { animation-delay: 100ms; }
+.metric-card-animate:nth-child(4) { animation-delay: 150ms; }
+.metric-card-animate:nth-child(5) { animation-delay: 200ms; }
+.metric-card-animate:nth-child(6) { animation-delay: 250ms; }
+
+/* Entrada de filas de tabla */
+.table-row-animate {
+  animation: slideInLeft 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Pulso suave para badges de alerta */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.badge-pulse {
+  animation: softPulse 2.2s ease-in-out infinite;
+}

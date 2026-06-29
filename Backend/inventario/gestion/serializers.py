@@ -9,20 +9,21 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 #================================================================================ CLASE PRODUCTO ================================================================================
 class ProductoSerializer(serializers.ModelSerializer):
-    categoria_nombre = serializers.CharField(source='id_categoria.nombre', read_only=True)   
+    categoria_nombre = serializers.CharField(source='id_categoria.nombre', read_only=True)
     class Meta:
         model = Producto
         fields = [
-            'id_producto', 
-            'nombre', 
-            'descripcion', 
+            'id_producto',
+            'nombre',
+            'descripcion',
             'sku',
             'barcode',
-            'stock', 
+            'stock',
             'precio',
-            'costo', 
-            'min_stock',    
-            'id_categoria', 
+            'precio_mayorista',
+            'costo',
+            'min_stock',
+            'id_categoria',
             'categoria_nombre',
             'fecha_vencimiento'
         ]
@@ -268,13 +269,3 @@ class DevolucionProveedorSerializer(serializers.ModelSerializer):
         model = DevolucionProveedor
         fields = '__all__'
 
-class ProveedorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Proveedor
-        fields = '__all__'
-
-class ProductoSerializer(serializers.ModelSerializer):
-    categoria_nombre = serializers.CharField(source='id_categoria.nombre', read_only=True)
-    class Meta:
-        model = Producto
-        fields = ['id_producto', 'nombre', 'descripcion', 'sku', 'barcode', 'precio', 'precio_mayorista', 'costo', 'stock', 'min_stock', 'id_categoria', 'categoria_nombre']

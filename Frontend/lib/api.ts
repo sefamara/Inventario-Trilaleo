@@ -20,6 +20,20 @@ const getApiBase = (): string => {
 
 const API_BASE = getApiBase();
 
+const nativeFetch = fetch;
+
+function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = process.env.NEXT_PUBLIC_LAN_TOKEN;
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  return nativeFetch(url, {
+    ...options,
+    headers: {
+      ...authHeader,
+      ...(options.headers as Record<string, string> || {}),
+    },
+  });
+}
+
 interface Supplier {
   id_proveedor: number;
   empresa: string;
@@ -42,10 +56,10 @@ interface Supplier {
 export const api = {
   // GET - usar español para coincidir con Django
   
-  getCategories: () => fetch(`${API_BASE}/categorias/`).then(res => res.json()),
+  getCategories: () => apiFetch(`${API_BASE}/categorias/`).then(res => res.json()),
   
   createCategory: async (data: { nombre: string }): Promise<any> => {
-    const response = await fetch(`${API_BASE}/categorias/`, {
+    const response = await apiFetch(`${API_BASE}/categorias/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -58,7 +72,7 @@ export const api = {
   },
 
   updateCategory: async (id: number, data: { nombre: string }): Promise<any> => {
-    const response = await fetch(`${API_BASE}/categorias/${id}/`, {
+    const response = await apiFetch(`${API_BASE}/categorias/${id}/`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -71,7 +85,7 @@ export const api = {
   },
 
   deleteCategory: async (id: number): Promise<any> => {
-    const response = await fetch(`${API_BASE}/categorias/${id}/`, {
+    const response = await apiFetch(`${API_BASE}/categorias/${id}/`, {
       method: 'DELETE'
     });
     if (!response.ok) {
@@ -84,15 +98,15 @@ export const api = {
     return { success: true };
   },
 
-  getPresentaciones: () => fetch(`${API_BASE}/presentaciones_producto/`).then(res => res.json()),
+  getPresentaciones: () => apiFetch(`${API_BASE}/presentaciones_producto/`).then(res => res.json()),
 
 //================================================================================ MODULO PRODUCTOS ================================================================================
 
   // GET
-  getProducts: () => fetch(`${API_BASE}/productos/`).then(res => res.json()),
+  getProducts: () => apiFetch(`${API_BASE}/productos/`).then(res => res.json()),
 
   // POST
-  createProducto: (data: any) => fetch(`${API_BASE}/productos/`, {
+  createProducto: (data: any) => apiFetch(`${API_BASE}/productos/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -112,7 +126,7 @@ export const api = {
     // console.log('📝 Datos enviados:', JSON.stringify(data, null, 2));
     // console.log('🔧 Método: PUT');
     
-    return fetch(url, {
+    return apiFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -150,7 +164,7 @@ export const api = {
     const url = `${API_BASE}/productos/${id}/`;
     // console.log('🗑️ DELETE URL:', url);
     
-    return fetch(url, {
+    return apiFetch(url, {
       method: 'DELETE'
     }).then(async (res) => {
       // console.log('🗑️ DELETE Response status:', res.status);
@@ -181,7 +195,7 @@ export const api = {
   getProveedores: async (): Promise<any[]> => {
     try {
       console.log('🔍 Obteniendo proveedores...');
-      const response = await fetch(`${API_BASE}/proveedores/`);
+      const response = await apiFetch(`${API_BASE}/proveedores/`);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -199,7 +213,7 @@ export const api = {
     }
   },
 
-  getProveedor: (id: number) => fetch(`${API_BASE}/proveedores/${id}/`).then(res => res.json()),
+  getProveedor: (id: number) => apiFetch(`${API_BASE}/proveedores/${id}/`).then(res => res.json()),
 
   // CREATE PROVEEDOR - Completamente corregido
   createProveedor: async (data: any): Promise<any> => {
@@ -235,7 +249,7 @@ export const api = {
 
       console.log('📤 Datos enviados a API:', supplierData);
 
-      const response = await fetch(`${API_BASE}/proveedores/`, {
+      const response = await apiFetch(`${API_BASE}/proveedores/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(supplierData)
@@ -302,7 +316,7 @@ export const api = {
         productos_ids: data.productos_ids || []
       };
 
-      const response = await fetch(`${API_BASE}/proveedores/${id}/`, {
+      const response = await apiFetch(`${API_BASE}/proveedores/${id}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(supplierData)
@@ -335,7 +349,7 @@ export const api = {
       throw new Error(`ID de proveedor inválido: ${id}`);
     }
 
-    const response = await fetch(`${API_BASE}/proveedores/${id}/`, {
+    const response = await apiFetch(`${API_BASE}/proveedores/${id}/`, {
       method: 'DELETE'
     });
     
@@ -368,16 +382,16 @@ export const api = {
     }
   },
 
-  searchProveedores: (query: string) => fetch(`${API_BASE}/proveedores/buscar/?q=${query}`).then(res => res.json()),
+  searchProveedores: (query: string) => apiFetch(`${API_BASE}/proveedores/buscar/?q=${query}`).then(res => res.json()),
 
 //================================================================================ MODULO VENTAS ================================================================================
 
-  getVentas: () => fetch(`${API_BASE}/ventas/`).then(res => res.json()),
-  getVenta: (id: number) => fetch(`${API_BASE}/ventas/${id}/`).then(res => res.json()),
+  getVentas: () => apiFetch(`${API_BASE}/ventas/`).then(res => res.json()),
+  getVenta: (id: number) => apiFetch(`${API_BASE}/ventas/${id}/`).then(res => res.json()),
 
   createVenta: (data: any) => {
     console.log('📤 Creando venta en BD:', data);
-    return fetch(`${API_BASE}/ventas/`, {
+    return apiFetch(`${API_BASE}/ventas/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -398,26 +412,26 @@ export const api = {
   },
 
   // DETALLE VENTA
-  createDetalleVenta: (data: any) => fetch(`${API_BASE}/detalle-venta/`, {
+  createDetalleVenta: (data: any) => apiFetch(`${API_BASE}/detalle-venta/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   }).then(res => res.json()),
 
-  updateVenta: (id: number, data: any) => fetch(`${API_BASE}/ventas/${id}/`, {
+  updateVenta: (id: number, data: any) => apiFetch(`${API_BASE}/ventas/${id}/`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   }).then(res => res.json()),
 
-  deleteVenta: (id: number) => fetch(`${API_BASE}/ventas/${id}/`, {
+  deleteVenta: (id: number) => apiFetch(`${API_BASE}/ventas/${id}/`, {
     method: 'DELETE'
   }).then(res => res.json()),
 
   // DETALLE VENTA
   getDetalleVenta: (ventaId: number) => {
     // console.log('🔍 Obteniendo detalles para venta:', ventaId);
-    return fetch(`${API_BASE}/detalle-venta/?venta_id=${ventaId}`)
+    return apiFetch(`${API_BASE}/detalle-venta/?venta_id=${ventaId}`)
       .then(async (res) => {
         // console.log('📥 Respuesta detalles venta - Status:', res.status);
         const data = await res.json();
@@ -432,9 +446,9 @@ export const api = {
 
 //================================================================================ CLIENTES ================================================================================
 
-  getClientes: () => fetch(`${API_BASE}/clientes/`).then(res => res.json()),
-  getCliente: (id: number) => fetch(`${API_BASE}/clientes/${id}/`).then(res => res.json()),
-  createCliente: (data: any) => fetch(`${API_BASE}/clientes/`, {
+  getClientes: () => apiFetch(`${API_BASE}/clientes/`).then(res => res.json()),
+  getCliente: (id: number) => apiFetch(`${API_BASE}/clientes/${id}/`).then(res => res.json()),
+  createCliente: (data: any) => apiFetch(`${API_BASE}/clientes/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -442,8 +456,8 @@ export const api = {
 
 //================================================================================ PROMOCIONES ================================================================================
 
-  getPromociones: () => fetch(`${API_BASE}/promociones/`).then(res => res.json()),
-  getPromocion: (id: number) => fetch(`${API_BASE}/promociones/${id}/`).then(res => res.json()),
+  getPromociones: () => apiFetch(`${API_BASE}/promociones/`).then(res => res.json()),
+  getPromocion: (id: number) => apiFetch(`${API_BASE}/promociones/${id}/`).then(res => res.json()),
 
 //================================================================================ MOVIMIENTOS DE INVENTARIO ================================================================================
 
@@ -453,7 +467,7 @@ export const api = {
       const url = `${API_BASE}/movimientos-inventario/`;
       console.log('🌐 [DEBUG] URL completa:', url);
       
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       console.log('📡 [DEBUG] Response status:', response.status);
       console.log('📡 [DEBUG] Response ok:', response.ok);
       
@@ -474,7 +488,7 @@ export const api = {
   },
 
   getMovimientosByProducto: async (productoId: number): Promise<any[]> => {
-    const response = await fetch(`${API_BASE}/movimientos-inventario/?producto_id=${productoId}`);
+    const response = await apiFetch(`${API_BASE}/movimientos-inventario/?producto_id=${productoId}`);
     if (!response.ok) throw new Error('Error fetching movimientos por producto');
     return response.json();
   },
@@ -482,7 +496,7 @@ export const api = {
   // CORREGIDO: Quitar "export const"
   createMovimientoInventario: async (movimientoData: any): Promise<any> => {
     try {
-      const response = await fetch(`${API_BASE}/movimientos-inventario/`, {
+      const response = await apiFetch(`${API_BASE}/movimientos-inventario/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -504,7 +518,7 @@ export const api = {
   },
 
   deleteMovimientoInventario: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/movimientos-inventario/${id}/`, {
+    const response = await apiFetch(`${API_BASE}/movimientos-inventario/${id}/`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Error deleting movimiento inventario');
@@ -513,12 +527,12 @@ export const api = {
 //================================================================================ Ordenes de compra ================================================================================
   // Órdenes de Compra
   getOrdenesCompra: async (): Promise<any[]> => {
-    const response = await fetch(`${API_BASE}/ordenes-compra/`); // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/ordenes-compra/`); // ✅ CORRECTO
     return response.json();
   },
 
   createOrdenCompra: async (ordenData: any): Promise<any> => {
-    const response = await fetch(`${API_BASE}/ordenes-compra/`, { // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/ordenes-compra/`, { // ✅ CORRECTO
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ordenData)
@@ -527,7 +541,7 @@ export const api = {
   },
 
   recibirProductosOrden: async (ordenId: number, itemsData: any[]): Promise<any> => {
-    const response = await fetch(`${API_BASE}/ordenes-compra/${ordenId}/recibir_productos/`, { // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/ordenes-compra/${ordenId}/recibir_productos/`, { // ✅ CORRECTO
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: itemsData })
@@ -537,12 +551,12 @@ export const api = {
 
   // Devoluciones
   getDevolucionesProveedores: async (): Promise<any[]> => {
-    const response = await fetch(`${API_BASE}/devoluciones-proveedores/`); // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/devoluciones-proveedores/`); // ✅ CORRECTO
     return response.json();
   },
 
   createDevolucionProveedor: async (devolucionData: any): Promise<any> => {
-    const response = await fetch(`${API_BASE}/devoluciones-proveedores/`, { // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/devoluciones-proveedores/`, { // ✅ CORRECTO
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(devolucionData)
@@ -551,7 +565,7 @@ export const api = {
   },
 
   procesarDevolucion: async (devolucionId: number, estado: string): Promise<any> => {
-    const response = await fetch(`${API_BASE}/devoluciones-proveedores/${devolucionId}/procesar_devolucion/`, { // ✅ CORRECTO
+    const response = await apiFetch(`${API_BASE}/devoluciones-proveedores/${devolucionId}/procesar_devolucion/`, { // ✅ CORRECTO
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado })
@@ -564,7 +578,7 @@ export const api = {
   // Eliminar TODAS las ventas y sus detalles
   deleteAllSales: async (): Promise<{message: string}> => {
     console.log('🗑️ Eliminando TODAS las ventas de la BD');
-    const response = await fetch(`${API_BASE}/ventas/delete_all/`, {  // ← URL CORREGIDA
+    const response = await apiFetch(`${API_BASE}/ventas/delete_all/`, {  // ← URL CORREGIDA
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -585,7 +599,7 @@ export const api = {
     const url = `${API_BASE}/movimientos-inventario/delete_all/`;
     console.log('🔍 URL que se está llamando:', url);
     
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });

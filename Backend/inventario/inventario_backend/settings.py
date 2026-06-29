@@ -19,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Inicializar django-environ
 env = environ.Env(
-    DEBUG=(bool, True)
+    DEBUG=(bool, False)
 )
 # La configuracion automatica crea este archivo local, que nunca se sube a Git.
 ENV_FILE = BASE_DIR / '.env'
@@ -29,12 +29,15 @@ environ.Env.read_env(str(ENV_FILE))
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-r_y80dehd$4$f(!s!y0$_*t*pg5v%sz8gf$@80sc#)o%c74cpb')
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+
+# Token compartido para acceso LAN (protege endpoints de escritura)
+LAN_ACCESS_TOKEN = env('LAN_ACCESS_TOKEN', default='')
 
 
 # Application definition
@@ -141,15 +144,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://localhost:3443",
 ])
 
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-    ]
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'gestion.permissions.LanTokenPermission',
+    ],
 }

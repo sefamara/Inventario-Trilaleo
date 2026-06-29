@@ -7163,7 +7163,7 @@ export default function BusinessSalesSystem() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">Sistema de Inventario</h1>
             <p className="text-sm md:text-base text-gray-600 mt-1">Panel de control y gestión</p>
           </div>
-          <div className="w-full overflow-x-clip">
+          <div key={activeTab} className="w-full overflow-x-clip tab-content">
             {renderContent()}
           </div>
         </div>

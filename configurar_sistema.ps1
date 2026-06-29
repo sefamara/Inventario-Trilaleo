@@ -160,21 +160,44 @@ FLUSH PRIVILEGES;
     }
 
     $secretKey = [Guid]::NewGuid().ToString("N") + [Guid]::NewGuid().ToString("N")
+    $lanToken = [Guid]::NewGuid().ToString("N") + [Guid]::NewGuid().ToString("N")
     $envContent = @"
 DB_NAME=inventario_trilaleo
 DB_USER=$appUser
 DB_PASSWORD=$appPassword
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DEBUG=True
-ALLOWED_HOSTS=*
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
 SECRET_KEY=$secretKey
+LAN_ACCESS_TOKEN=$lanToken
 "@
     [System.IO.File]::WriteAllText($EnvFile, $envContent, [System.Text.UTF8Encoding]::new($false))
     Write-Host "Configuracion privada guardada en Backend\.env."
+
+    $frontendEnvFile = Join-Path $FrontendDir ".env.local"
+    $frontendEnvContent = "NEXT_PUBLIC_LAN_TOKEN=$lanToken`n"
+    [System.IO.File]::WriteAllText($frontendEnvFile, $frontendEnvContent, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Token LAN sincronizado en Frontend\.env.local."
 }
 else {
     Write-Step "Usando la configuracion MySQL existente"
+
+    # Asegurar que el token LAN exista y este sincronizado
+    $envLines = Get-Content $EnvFile -ErrorAction SilentlyContinue
+    $hasToken = $envLines | Where-Object { $_ -match '^LAN_ACCESS_TOKEN=' }
+    if (-not $hasToken) {
+        $newToken = [Guid]::NewGuid().ToString("N") + [Guid]::NewGuid().ToString("N")
+        Add-Content -Path $EnvFile -Value "LAN_ACCESS_TOKEN=$newToken" -Encoding UTF8
+        Write-Host "LAN_ACCESS_TOKEN generado y agregado a Backend\.env."
+    } else {
+        $newToken = ($hasToken | Select-Object -First 1).Split('=', 2)[1]
+    }
+
+    $frontendEnvFile = Join-Path $FrontendDir ".env.local"
+    $frontendEnvContent = "NEXT_PUBLIC_LAN_TOKEN=$newToken`n"
+    [System.IO.File]::WriteAllText($frontendEnvFile, $frontendEnvContent, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Token LAN sincronizado en Frontend\.env.local."
 }
 
 Write-Step "Creando y actualizando las tablas"

@@ -25,7 +25,14 @@ const colorClasses = {
 export function MetricCard({ title, value, subtitle, icon: Icon, color, onClick }: MetricCardProps) {
   return (
     <Card
-      className={`${colorClasses[color]} cursor-pointer hover:scale-105 transition-transform duration-200 shadow-lg`}
+      className={[
+        colorClasses[color],
+        "metric-card-animate",
+        "cursor-pointer shadow-lg",
+        "transition-all duration-200 ease-out",
+        "hover:scale-[1.03] hover:shadow-xl hover:-translate-y-0.5",
+        "active:scale-[0.98] active:shadow-md",
+      ].join(" ")}
       onClick={onClick}
     >
       <CardContent className="p-6">
@@ -35,7 +42,7 @@ export function MetricCard({ title, value, subtitle, icon: Icon, color, onClick 
             <p className="text-2xl md:text-3xl font-bold mt-2 truncate">{value}</p>
             {subtitle && <p className="text-sm opacity-75 mt-1">{subtitle}</p>}
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 transition-transform duration-200 group-hover:scale-110">
             <Icon className="h-10 w-10 md:h-12 md:w-12 opacity-80" />
           </div>
         </div>
