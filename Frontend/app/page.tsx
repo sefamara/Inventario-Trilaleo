@@ -327,13 +327,18 @@ interface Presentacion {
 // SECCIÓN 2: COMPONENTES DE FORMULARIOS
 // ===================================================================================================================================================================================================================
 
-const EditProductForm: React.FC<{ 
-  product: Product; 
-  onSave: (product: Product) => void; 
+const EditProductForm: React.FC<{
+  product: Product;
+  onSave: (product: Product) => void;
   onCancel: () => void;
   categories: any[];
-}> = ({ product, onSave, onCancel, categories }) => {
+  onCategoriesReload: () => Promise<void>;
+}> = ({ product, onSave, onCancel, categories, onCategoriesReload }) => {
   const [editedProduct, setEditedProduct] = useState(product)
+  const [showInlineCat, setShowInlineCat] = useState(false);
+  const [inlineCatName, setInlineCatName] = useState("");
+  const [isCreatingCat, setIsCreatingCat] = useState(false);
+  const [inlineCatError, setInlineCatError] = useState("");
 
   useKeyboardBarcodeScanner({
     active: true,
@@ -343,6 +348,26 @@ const EditProductForm: React.FC<{
   const handleSave = () => {
     onSave(editedProduct)
   }
+
+  const handleInlineCreateCategory = async () => {
+    if (!inlineCatName.trim() || isCreatingCat) return;
+    setIsCreatingCat(true);
+    setInlineCatError("");
+    const nombre = inlineCatName.trim();
+    try {
+      const newCat = await api.createCategory({ nombre });
+      setInlineCatName("");
+      setShowInlineCat(false);
+      await onCategoriesReload();
+      if (newCat?.id_categoria) {
+        setEditedProduct(prev => ({ ...prev, categoryId: newCat.id_categoria, category: nombre }));
+      }
+    } catch (error: any) {
+      setInlineCatError('Error al crear categoría: ' + error.message);
+    } finally {
+      setIsCreatingCat(false);
+    }
+  };
 
   return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -449,31 +474,66 @@ const EditProductForm: React.FC<{
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="edit-product-category">Categoría *</Label>
-          <select
-            id="edit-product-category"
-            value={editedProduct.categoryId}
-            onChange={(e) => {
-              const newCategoryId = Number(e.target.value);
-              console.log('🔍 EDITAR - Categoría seleccionada:', newCategoryId);
-              setEditedProduct({ 
-                ...editedProduct, 
-                categoryId: newCategoryId,
-                category: categories.find(cat => cat.id_categoria === newCategoryId)?.nombre || editedProduct.category
-              });
-            }}
-            className="w-full p-2 border rounded-md"
-          >
-            <option value="">Selecciona una categoría</option>
-            {categories.map(cat => (
-              <option key={cat.id_categoria} value={cat.id_categoria}>
-                {cat.nombre} (ID: {cat.id_categoria}) {/* ← Agregar ID para debug */}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              id="edit-product-category"
+              value={editedProduct.categoryId}
+              onChange={(e) => {
+                const newCategoryId = Number(e.target.value);
+                setEditedProduct({
+                  ...editedProduct,
+                  categoryId: newCategoryId,
+                  category: categories.find(cat => cat.id_categoria === newCategoryId)?.nombre || editedProduct.category
+                });
+              }}
+              className="flex-1 p-2 border rounded-md"
+            >
+              <option value="">Selecciona una categoría</option>
+              {categories.map(cat => (
+                <option key={cat.id_categoria} value={cat.id_categoria}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { setShowInlineCat(!showInlineCat); setInlineCatName(""); setInlineCatError(""); }}
+              title="Crear nueva categoría"
+              className="shrink-0 px-2"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {showInlineCat && (
+            <div className="mt-2 flex gap-2">
+              <Input
+                value={inlineCatName}
+                onChange={(e) => setInlineCatName(e.target.value)}
+                placeholder="Nombre de categoría..."
+                className="flex-1"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleInlineCreateCategory(); }}
+                autoFocus
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleInlineCreateCategory}
+                disabled={!inlineCatName.trim() || isCreatingCat}
+                className="shrink-0"
+              >
+                {isCreatingCat ? "..." : "Crear"}
+              </Button>
+            </div>
+          )}
+          {inlineCatError && (
+            <p className="text-red-500 text-sm mt-1">{inlineCatError}</p>
+          )}
           {!editedProduct.categoryId ? (
             <p className="text-red-500 text-sm mt-1">Debes seleccionar una categoría</p>
           ) : (
-            <p className="text-green-500 text-sm mt-1">Categoría seleccionada: ID {editedProduct.categoryId}</p>
+            <p className="text-green-500 text-sm mt-1">Categoría seleccionada</p>
           )}
         </div>
         <div>
@@ -2887,6 +2947,11 @@ export default function BusinessSalesSystem() {
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
 
+  // Estados para creación inline de categorías en modal "Agregar Producto"
+  const [showInlineCatAdd, setShowInlineCatAdd] = useState(false);
+  const [inlineCatNameAdd, setInlineCatNameAdd] = useState("");
+  const [isCreatingCatAdd, setIsCreatingCatAdd] = useState(false);
+
   // Estado de backup y recuperación
   const [salesBackup, setSalesBackup] = useState<Sale[]>([]);
   const [inventoryMovementsBackup, setInventoryMovementsBackup] = useState<InventoryMovement[]>([]);
@@ -3298,6 +3363,8 @@ export default function BusinessSalesSystem() {
         timestamp: new Date()
       }, ...prev]);
 
+      setShowInlineCatAdd(false);
+      setInlineCatNameAdd("");
       setIsAddProductOpen(false);
 
     } catch (error: any) {
@@ -3331,6 +3398,31 @@ export default function BusinessSalesSystem() {
     } catch (error: any) {
       console.error('Error creando categoría:', error);
       setErrors(prev => ({ ...prev, category: 'Error al crear la categoría: ' + error.message }));
+    }
+  };
+
+  const handleInlineCreateCategoryAdd = async () => {
+    if (!inlineCatNameAdd.trim() || isCreatingCatAdd) return;
+    setIsCreatingCatAdd(true);
+    const nombre = inlineCatNameAdd.trim();
+    try {
+      const newCat = await api.createCategory({ nombre });
+      setInlineCatNameAdd("");
+      setShowInlineCatAdd(false);
+      setErrors(prev => { const { inlineCatAdd, ...rest } = prev; return rest; });
+      await productsHook.loadCategories();
+      if (newCat?.id_categoria) {
+        setSelectedCategoryId(newCat.id_categoria);
+      }
+      setNotifications(prev => [{
+        type: 'success',
+        message: `Categoría "${nombre}" creada y seleccionada`,
+        timestamp: new Date()
+      }, ...prev]);
+    } catch (error: any) {
+      setErrors(prev => ({ ...prev, inlineCatAdd: 'Error al crear categoría: ' + error.message }));
+    } finally {
+      setIsCreatingCatAdd(false);
     }
   };
 
@@ -4826,30 +4918,63 @@ export default function BusinessSalesSystem() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="product-category">Categoría</Label>
-                            <select
-                              id="product-category"
-                              value={selectedCategoryId || ''}
-                              onChange={(e) => {
-                                console.log('🔍 Categoría seleccionada:', e.target.value);
-                                setSelectedCategoryId(Number(e.target.value));
-                              }}
-                              className="w-full p-2 border rounded-md"
-                              required
-                            >
-                              <option value="">Selecciona una categoría</option>
-                              {categories.map(cat => (
-                                <option key={cat.id_categoria} value={cat.id_categoria}>
-                                  {cat.nombre} (ID: {cat.id_categoria})
-                                </option>
-                              ))}
-                            </select>
+                            <div className="flex gap-2">
+                              <select
+                                id="product-category"
+                                value={selectedCategoryId || ''}
+                                onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+                                className="flex-1 p-2 border rounded-md"
+                                required
+                              >
+                                <option value="">Selecciona una categoría</option>
+                                {categories.map(cat => (
+                                  <option key={cat.id_categoria} value={cat.id_categoria}>
+                                    {cat.nombre}
+                                  </option>
+                                ))}
+                              </select>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowInlineCatAdd(!showInlineCatAdd); setInlineCatNameAdd(""); }}
+                                title="Crear nueva categoría"
+                                className="shrink-0 px-2"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {showInlineCatAdd && (
+                              <div className="mt-2 flex gap-2">
+                                <Input
+                                  value={inlineCatNameAdd}
+                                  onChange={(e) => setInlineCatNameAdd(e.target.value)}
+                                  placeholder="Nombre de categoría..."
+                                  className="flex-1"
+                                  onKeyDown={(e) => { if (e.key === 'Enter') handleInlineCreateCategoryAdd(); }}
+                                  autoFocus
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={handleInlineCreateCategoryAdd}
+                                  disabled={!inlineCatNameAdd.trim() || isCreatingCatAdd}
+                                  className="shrink-0"
+                                >
+                                  {isCreatingCatAdd ? "..." : "Crear"}
+                                </Button>
+                              </div>
+                            )}
+                            {errors.inlineCatAdd && (
+                              <p className="text-red-500 text-sm mt-1">{errors.inlineCatAdd}</p>
+                            )}
                             {!selectedCategoryId ? (
                               <p className="text-red-500 text-sm mt-1">Debes seleccionar una categoría</p>
                             ) : (
-                              <p className="text-green-500 text-sm mt-1">Categoría seleccionada: ID {selectedCategoryId}</p>
+                              <p className="text-green-500 text-sm mt-1">Categoría seleccionada</p>
                             )}
                           </div>
-                          {/* NUEVO: Fecha de vencimiento */}
+                          {/* Fecha de vencimiento */}
                           <div>
                             <Label htmlFor="product-expiry">Fecha de Vencimiento (opcional)</Label>
                             <Input
@@ -5051,6 +5176,7 @@ export default function BusinessSalesSystem() {
                                         setEditingProduct(null)
                                       }}
                                       categories={categories}
+                                      onCategoriesReload={() => productsHook.loadCategories()}
                                     />
                                   )}
                                 </DialogContent>
