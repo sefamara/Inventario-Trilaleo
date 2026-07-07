@@ -62,7 +62,7 @@ La primera instalación puede tardar varios minutos mientras se descargan las de
 
 ## Iniciar el sistema
 
-Haz doble clic en `iniciar_sistema.bat`. Se abrirán las ventanas del backend, del frontend y del acceso HTTPS para celulares.
+Haz doble clic en `iniciar_sistema.bat` (o en el acceso directo **Sistema Inventario Trilaleo** que se crea automáticamente en el Escritorio la primera vez que lo ejecutas). Los servicios del backend, del frontend y del acceso HTTPS para celulares se inician minimizados en la barra de tareas para no saturar el escritorio con ventanas; permanecen abiertos porque el sistema los necesita para funcionar, pero puedes restaurarlos desde ahí si necesitas revisar sus registros.
 
 Direcciones de acceso:
 
@@ -110,7 +110,7 @@ Para trasladar información desde otro PC, entrega el respaldo SQL por un medio 
 - Confirma que el celular y el PC estén en la misma red Wi-Fi.
 - Usa exactamente la dirección mostrada por `iniciar_sistema.bat`.
 - Ejecuta el iniciador como administrador para permitir el puerto TCP `3443` en Windows Firewall.
-- Comprueba que las ventanas del backend y del frontend permanezcan abiertas.
+- Comprueba que los procesos del backend y del frontend sigan abiertos (minimizados en la barra de tareas).
 
 ### MySQL cambió de contraseña o fue reinstalado
 

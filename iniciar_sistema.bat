@@ -11,6 +11,9 @@ echo.
 :: Obtener la ruta donde esta este script
 set "PROJECT_DIR=%~dp0"
 
+:: Crear acceso directo en el escritorio si todavia no existe
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%crear_acceso_directo.ps1" >nul 2>nul
+
 :: Preparar automaticamente una instalacion nueva
 set "NEEDS_SETUP=0"
 if not exist "%PROJECT_DIR%django_entorno\Scripts\python.exe" set "NEEDS_SETUP=1"
@@ -55,7 +58,7 @@ echo.
 :: 1. Iniciar Backend Django
 :: --------------------------------------------------------
 echo [1/3] Iniciando Backend Django (puerto 8000)...
-start "Backend Django - Trilaleo" /D "%PROJECT_DIR%Backend\inventario" cmd /k ""%PROJECT_DIR%django_entorno\Scripts\python.exe" manage.py runserver 0.0.0.0:8000"
+start "Backend Django - Trilaleo" /min /D "%PROJECT_DIR%Backend\inventario" cmd /k ""%PROJECT_DIR%django_entorno\Scripts\python.exe" manage.py runserver 0.0.0.0:8000"
 
 timeout /t 3 /nobreak >nul
 
@@ -64,7 +67,7 @@ timeout /t 3 /nobreak >nul
 ::    Para uso en este PC
 :: --------------------------------------------------------
 echo [2/3] Iniciando Frontend HTTP para este PC (puerto 3000)...
-start "Frontend HTTP - Trilaleo" /D "%PROJECT_DIR%Frontend" cmd /k "npm.cmd run dev -- -H 0.0.0.0"
+start "Frontend HTTP - Trilaleo" /min /D "%PROJECT_DIR%Frontend" cmd /k "npm.cmd run dev -- -H 0.0.0.0"
 
 :: --------------------------------------------------------
 :: 3. Preparar y lanzar Frontend HTTPS (para camara movil)
@@ -97,7 +100,7 @@ cd /d "%PROJECT_DIR%Frontend"
 node generar-cert.js %LOCAL_IP%
 
 :: Lanzar servidor HTTPS
-start "Frontend HTTPS Movil - Trilaleo" /D "%PROJECT_DIR%Frontend" cmd /k "node serve-https.js %LOCAL_IP%"
+start "Frontend HTTPS Movil - Trilaleo" /min /D "%PROJECT_DIR%Frontend" cmd /k "node serve-https.js %LOCAL_IP%"
 
 timeout /t 6 /nobreak >nul
 
@@ -120,6 +123,11 @@ echo   Al entrar por primera vez desde el celular,
 echo   el navegador mostrara una advertencia de seguridad.
 echo   Toca "Avanzado" y luego "Continuar de todos modos".
 echo   Solo tienes que hacerlo UNA vez.
+echo.
+echo   Los servicios quedaron minimizados en la barra de tareas
+echo   para no saturar el escritorio. Dejalos abiertos mientras
+echo   uses el sistema; si necesitas ver sus registros, restauralos
+echo   desde ahi.
 echo.
 echo ========================================================
 echo.
