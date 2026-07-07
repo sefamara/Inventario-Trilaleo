@@ -36,6 +36,7 @@ export const printThermalReceipt = (data: {
             font-family: 'Courier New', Courier, monospace;
             padding: 3mm 4mm;
             font-size: 13px;
+            font-weight: bold;
             color: #000;
             line-height: 1.35;
             -webkit-print-color-adjust: exact;

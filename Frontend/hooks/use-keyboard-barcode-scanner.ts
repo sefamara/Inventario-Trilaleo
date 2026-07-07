@@ -132,14 +132,14 @@ export function useKeyboardBarcodeScanner({
 
       const buffer = bufferRef.current
       const delta = lastKeyAtRef.current ? now - lastKeyAtRef.current : 0
-      const effectiveMaxDelay = buffer.length === 1 ? FIRST_CHAR_GRACE_MS : maxDelayMs
 
-      if (buffer && delta > effectiveMaxDelay) {
-        reset()
-      }
-
+      // El terminador (Enter/Tab) se evalúa con su propia condición de
+      // aceptación (isFastSequenceRef + minLength) y no debe pasar por el
+      // reinicio por demora de abajo: algunos lectores envían el Enter final
+      // con una latencia distinta a la de los dígitos, y reiniciar el buffer
+      // aquí antes de evaluarlo descartaba escaneos completos y válidos.
       if (isTerminator) {
-        if (bufferRef.current.length >= minLength && isFastSequenceRef.current) {
+        if (buffer.length >= minLength && isFastSequenceRef.current) {
           event.preventDefault()
           event.stopPropagation()
           finish()
@@ -147,6 +147,12 @@ export function useKeyboardBarcodeScanner({
           reset()
         }
         return
+      }
+
+      const effectiveMaxDelay = buffer.length === 1 ? FIRST_CHAR_GRACE_MS : maxDelayMs
+
+      if (buffer && delta > effectiveMaxDelay) {
+        reset()
       }
 
       if (!bufferRef.current) {

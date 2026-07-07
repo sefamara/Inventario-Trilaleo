@@ -61,6 +61,7 @@ import { exportToExcel } from "@/utils/excel-export"
 import { BarcodeScanner } from "@/components/barcode-scanner"
 import { printThermalReceipt } from "@/utils/print-receipt"
 import { useKeyboardBarcodeScanner } from "@/hooks/use-keyboard-barcode-scanner"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
@@ -339,9 +340,10 @@ const EditProductForm: React.FC<{
   const [inlineCatName, setInlineCatName] = useState("");
   const [isCreatingCat, setIsCreatingCat] = useState(false);
   const [inlineCatError, setInlineCatError] = useState("");
+  const isMobile = useIsMobile();
 
   useKeyboardBarcodeScanner({
-    active: true,
+    active: !isMobile,
     onScan: (code) => {
       setEditedProduct((current) => ({ ...current, barcode: code }))
       const barcodeInput = document.getElementById("edit-product-barcode") as HTMLInputElement | null
@@ -2859,6 +2861,7 @@ export default function BusinessSalesSystem() {
 
   // Estado de navegación y UI
   const [activeTab, setActiveTab] = useState("dashboard");
+  const isMobile = useIsMobile();
 
   // Estado de búsquedas y filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -3601,7 +3604,7 @@ export default function BusinessSalesSystem() {
   };
 
   useKeyboardBarcodeScanner({
-    active: isAddProductOpen && !isEditDialogOpen,
+    active: isAddProductOpen && !isEditDialogOpen && !isMobile,
     onScan: (code) => {
       setNewProduct((current) => ({ ...current, barcode: code }));
       const barcodeInput = document.getElementById("product-barcode") as HTMLInputElement | null;
@@ -3616,7 +3619,7 @@ export default function BusinessSalesSystem() {
   });
 
   useKeyboardBarcodeScanner({
-    active: !isAddProductOpen && !isEditDialogOpen,
+    active: !isAddProductOpen && !isEditDialogOpen && !isMobile,
     onScan: (code) => {
       if (activeTab !== "sales") {
         setActiveTab("sales");
