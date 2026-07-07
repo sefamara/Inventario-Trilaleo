@@ -6,6 +6,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -13,23 +14,48 @@ const CERT_DIR = path.join(__dirname, 'certs');
 const CERT_FILE = path.join(CERT_DIR, 'server.crt');
 const KEY_FILE = path.join(CERT_DIR, 'server.key');
 const CERT_IP_FILE = path.join(CERT_DIR, 'server-ip.txt');
-const localIP = process.argv[2] || '127.0.0.1';
+const argIP = process.argv[2] || '';
 
-// Crear directorio si no existe
-if (!fs.existsSync(CERT_DIR)) {
-  fs.mkdirSync(CERT_DIR, { recursive: true });
+// Detecta todas las IPs LAN reales del equipo (no solo la que haya
+// detectado iniciar_sistema.bat), para que el certificado sea valido sin
+// importar a que red esté conectado el equipo al momento de generarlo, o si
+// la deteccion automatica de IP del .bat falla en alguna red en particular.
+function getAllLocalIPs() {
+  const interfaces = os.networkInterfaces();
+  const ignoredNames = /virtual|vmware|vbox|hyper-v|loopback|bluetooth|wsl|docker|tailscale/i;
+  const addresses = new Set();
+
+  for (const name of Object.keys(interfaces)) {
+    if (ignoredNames.test(name)) continue;
+
+    for (const iface of interfaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal && !iface.address.startsWith('169.254.')) {
+        addresses.add(iface.address);
+      }
+    }
+  }
+
+  if (argIP && argIP !== '127.0.0.1') {
+    addresses.add(argIP);
+  }
+
+  return Array.from(addresses);
 }
 
-// Si ya existen los certificados para la misma IP, no hacer nada.
-// Si la IP de la red cambió, regenerar para que el certificado incluya el SAN correcto.
+const localIPs = getAllLocalIPs();
+const ipListKey = [...localIPs].sort().join(',');
+
+// Si ya existen los certificados para el mismo conjunto de IPs, no hacer nada.
+// Si las IPs de red cambiaron (o se conectó una red nueva), regenerar para
+// que el certificado incluya el SAN correcto.
 if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
-  const previousIP = fs.existsSync(CERT_IP_FILE) ? fs.readFileSync(CERT_IP_FILE, 'utf8').trim() : '';
-  if (previousIP === localIP) {
+  const previousKey = fs.existsSync(CERT_IP_FILE) ? fs.readFileSync(CERT_IP_FILE, 'utf8').trim() : '';
+  if (previousKey === ipListKey) {
     console.log('Certificados ya existen, omitiendo generacion.');
     process.exit(0);
   }
 
-  console.log('La direccion IP LAN cambio; regenerando certificado...');
+  console.log('Las direcciones IP LAN cambiaron; regenerando certificado...');
   try { fs.unlinkSync(CERT_FILE); } catch {}
   try { fs.unlinkSync(KEY_FILE); } catch {}
 }
@@ -83,7 +109,10 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 [alt_names]
 DNS.1 = localhost
 IP.1 = 127.0.0.1
-IP.2 = ${localIP}
+${localIPs
+  .filter((ip) => ip !== '127.0.0.1')
+  .map((ip, index) => `IP.${index + 2} = ${ip}`)
+  .join('\n')}
 `;
 
   const confFile = path.join(CERT_DIR, 'openssl.cnf');
@@ -113,9 +142,9 @@ const opensslPath = findOpenSSL();
 if (opensslPath) {
   try {
     generateWithOpenSSL(opensslPath);
-    fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
+    fs.writeFileSync(CERT_IP_FILE, ipListKey, 'utf8');
     console.log('Certificado SSL generado correctamente.');
-    console.log(`   Valido para: localhost, 127.0.0.1, ${localIP}`);
+    console.log(`   Valido para: localhost, ${['127.0.0.1', ...localIPs].join(', ')}`);
     process.exit(0);
   } catch (err) {
     console.error('Error generando con OpenSSL:', err.message);
@@ -145,7 +174,10 @@ $req = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
 $sanBuilder = [System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new();
 $sanBuilder.AddDnsName('localhost');
 $sanBuilder.AddIpAddress([System.Net.IPAddress]::Parse('127.0.0.1'));
-try { $sanBuilder.AddIpAddress([System.Net.IPAddress]::Parse('${localIP}')); } catch {}
+${localIPs
+  .filter((ip) => ip !== '127.0.0.1')
+  .map((ip) => `try { $sanBuilder.AddIpAddress([System.Net.IPAddress]::Parse('${ip}')); } catch {}`)
+  .join('\n')}
 $req.CertificateExtensions.Add($sanBuilder.Build());
 
 # Crear certificado auto-firmado
@@ -173,9 +205,9 @@ const psResult = spawnSync('powershell', [
 
 if (psResult.status === 0 && psResult.stdout.includes('OK')) {
   if (fs.existsSync(CERT_FILE) && fs.existsSync(KEY_FILE)) {
-    fs.writeFileSync(CERT_IP_FILE, localIP, 'utf8');
+    fs.writeFileSync(CERT_IP_FILE, ipListKey, 'utf8');
     console.log('Certificado SSL generado con PowerShell correctamente.');
-    console.log(`   Valido para: localhost, 127.0.0.1, ${localIP}`);
+    console.log(`   Valido para: localhost, ${['127.0.0.1', ...localIPs].join(', ')}`);
     process.exit(0);
   }
 }
