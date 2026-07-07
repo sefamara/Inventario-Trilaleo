@@ -342,7 +342,12 @@ const EditProductForm: React.FC<{
 
   useKeyboardBarcodeScanner({
     active: true,
-    onScan: (code) => setEditedProduct((current) => ({ ...current, barcode: code })),
+    onScan: (code) => {
+      setEditedProduct((current) => ({ ...current, barcode: code }))
+      const barcodeInput = document.getElementById("edit-product-barcode") as HTMLInputElement | null
+      barcodeInput?.focus()
+      barcodeInput?.select()
+    },
   })
 
   const handleSave = () => {
@@ -3599,6 +3604,9 @@ export default function BusinessSalesSystem() {
     active: isAddProductOpen && !isEditDialogOpen,
     onScan: (code) => {
       setNewProduct((current) => ({ ...current, barcode: code }));
+      const barcodeInput = document.getElementById("product-barcode") as HTMLInputElement | null;
+      barcodeInput?.focus();
+      barcodeInput?.select();
       setNotifications(prev => [{
         type: 'info',
         message: `Código de barras capturado: ${code}`,
@@ -3608,8 +3616,12 @@ export default function BusinessSalesSystem() {
   });
 
   useKeyboardBarcodeScanner({
-    active: activeTab === "sales" && !isAddProductOpen && !isEditDialogOpen,
+    active: !isAddProductOpen && !isEditDialogOpen,
     onScan: (code) => {
+      if (activeTab !== "sales") {
+        setActiveTab("sales");
+      }
+
       const match = productsHook.products.find(p => p.barcode === code || p.sku === code);
 
       if (match && match.stock > 0) {

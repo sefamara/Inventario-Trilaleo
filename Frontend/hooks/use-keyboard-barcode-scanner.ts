@@ -50,6 +50,13 @@ const restoreTargetValue = (
   }
 }
 
+// Los lectores de código de barras suelen tardar más en enviar el primer
+// carácter (latencia de gatillo/driver) que en los siguientes. Si se usara
+// maxDelayMs también para ese primer intervalo, el buffer se reiniciaba a
+// mitad del escaneo y el primer dígito ya tipeado en el campo enfocado
+// quedaba sin restaurar. Se le da un margen mayor solo a ese primer salto.
+const FIRST_CHAR_GRACE_MS = 200
+
 export function useKeyboardBarcodeScanner({
   active,
   onScan,
@@ -125,8 +132,9 @@ export function useKeyboardBarcodeScanner({
 
       const buffer = bufferRef.current
       const delta = lastKeyAtRef.current ? now - lastKeyAtRef.current : 0
+      const effectiveMaxDelay = buffer.length === 1 ? FIRST_CHAR_GRACE_MS : maxDelayMs
 
-      if (buffer && delta > maxDelayMs) {
+      if (buffer && delta > effectiveMaxDelay) {
         reset()
       }
 
