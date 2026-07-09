@@ -4,7 +4,9 @@ from django.db import models
 class Categoria(models.Model):
     id_categoria = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=50)
-    
+    sku_prefix = models.CharField(max_length=10, blank=True, default='', unique=True)
+    ultimo_sku_numero = models.PositiveIntegerField(default=0)
+
     class Meta:
         db_table = 'categorias'
     
@@ -14,10 +16,10 @@ class Categoria(models.Model):
 #================================================================================ MODEL PRODUCTO ================================================================================
 class Producto(models.Model):
     id_producto = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100, db_index=True)
     descripcion = models.TextField(blank=True, null=True)
-    sku = models.CharField(max_length=50, blank=True, null=True)
-    barcode = models.CharField(max_length=100, blank=True, null=True)
+    sku = models.CharField(max_length=50, blank=True, null=True, unique=True)
+    barcode = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     stock = models.IntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     precio_mayorista = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

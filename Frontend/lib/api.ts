@@ -105,6 +105,20 @@ export const api = {
   // GET
   getProducts: () => apiFetch(`${API_BASE}/productos/`).then(res => res.json()),
 
+  // GET paginado + búsqueda en el servidor (usado por la tabla de gestión de productos)
+  getProductosPaginado: (
+    params: { page: number; pageSize?: number; search?: string; categoriaId?: number | null },
+    signal?: AbortSignal
+  ): Promise<{ count: number; num_pages: number; page: number; page_size: number; results: any[] }> => {
+    const query = new URLSearchParams();
+    query.set('page', String(params.page));
+    query.set('page_size', String(params.pageSize ?? 50));
+    if (params.search) query.set('search', params.search);
+    if (params.categoriaId) query.set('categoria', String(params.categoriaId));
+
+    return apiFetch(`${API_BASE}/productos/?${query.toString()}`, { signal }).then(res => res.json());
+  },
+
   // POST
   createProducto: (data: any) => apiFetch(`${API_BASE}/productos/`, {
     method: 'POST',

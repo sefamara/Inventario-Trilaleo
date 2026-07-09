@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1879,18 +1879,11 @@ const useProducts = () => {
   // Agregar nuevo producto
   const addProduct = async (productData: any, categoryId: number) => {
     try {
-      const ultimoSKU = products.reduce((max, product) => {
-        const skuNum = parseInt(product.sku.replace('SKU-', ''));
-        return isNaN(skuNum) ? max : Math.max(max, skuNum);
-      }, 0);
-      
-      const nuevoSKUNumero = ultimoSKU + 1;
-      const skuGenerado = `SKU-${nuevoSKUNumero.toString().padStart(3, '0')}`;
-
+      // El SKU lo genera el backend de forma atómica según la categoría
+      // (evita duplicados cuando varios usuarios agregan productos al mismo tiempo).
       const productToCreate = {
         nombre: productData.name,
         descripcion: productData.description,
-        sku: skuGenerado,
         barcode: productData.barcode || "",
         precio: productData.price,
         costo: productData.cost || 0,
@@ -1906,7 +1899,7 @@ const useProducts = () => {
       const newProduct: Product = {
         id: productoCreado.id_producto,
         name: productData.name,
-        sku: skuGenerado,
+        sku: productoCreado.sku,
         barcode: productData.barcode,
         price: productData.price,
         cost: productData.cost,
@@ -2869,6 +2862,81 @@ export default function BusinessSalesSystem() {
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
 
+  // Búsqueda de productos paginada en el servidor (tabla de gestión de productos)
+  const PRODUCTOS_PAGE_SIZE = 50;
+  const [debouncedProductSearchTerm, setDebouncedProductSearchTerm] = useState("");
+  const [productosGestionPage, setProductosGestionPage] = useState(1);
+  const [productosGestion, setProductosGestion] = useState<Product[]>([]);
+  const [productosGestionTotal, setProductosGestionTotal] = useState(0);
+  const [productosGestionPages, setProductosGestionPages] = useState(1);
+  const [productosGestionLoading, setProductosGestionLoading] = useState(false);
+  const [productosGestionRefreshKey, setProductosGestionRefreshKey] = useState(0);
+  const refreshProductosGestion = () => setProductosGestionRefreshKey(k => k + 1);
+  const productosGestionAbortRef = useRef<AbortController | null>(null);
+
+  // Debounce del término de búsqueda para no golpear al backend en cada tecla
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedProductSearchTerm(productSearchTerm), 350);
+    return () => clearTimeout(timer);
+  }, [productSearchTerm]);
+
+  // Volver a la página 1 cuando cambia la búsqueda o el filtro de categoría
+  useEffect(() => {
+    setProductosGestionPage(1);
+  }, [debouncedProductSearchTerm, filterCategoryId]);
+
+  // Carga la página actual de productos desde el servidor
+  useEffect(() => {
+    productosGestionAbortRef.current?.abort();
+    const controller = new AbortController();
+    productosGestionAbortRef.current = controller;
+
+    const cargarPagina = async () => {
+      setProductosGestionLoading(true);
+      try {
+        const data = await api.getProductosPaginado(
+          {
+            page: productosGestionPage,
+            pageSize: PRODUCTOS_PAGE_SIZE,
+            search: debouncedProductSearchTerm,
+            categoriaId: filterCategoryId,
+          },
+          controller.signal
+        );
+
+        const adaptados: Product[] = data.results.map((producto: ProductoFromAPI) => ({
+          id: producto.id_producto,
+          name: producto.nombre,
+          sku: producto.sku || `SKU-${producto.id_producto}`,
+          barcode: producto.barcode || "",
+          price: Number(producto.precio) || 0,
+          cost: Number(producto.costo) || 0,
+          stock: producto.stock,
+          minStock: producto.min_stock || DEFAULT_MIN_STOCK,
+          category: producto.categoria_nombre || "Sin categoría",
+          categoryId: producto.id_categoria,
+          description: producto.descripcion,
+          wholesalePrice: Number(producto.precio_mayorista) || 0,
+          expiryDate: producto.fecha_vencimiento || undefined,
+        }));
+
+        setProductosGestion(adaptados);
+        setProductosGestionTotal(data.count);
+        setProductosGestionPages(data.num_pages);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error cargando productos paginados:', error);
+        }
+      } finally {
+        setProductosGestionLoading(false);
+      }
+    };
+
+    cargarPagina();
+
+    return () => controller.abort();
+  }, [productosGestionPage, debouncedProductSearchTerm, filterCategoryId, productosGestionRefreshKey]);
+
   // Estado de clientes
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -3020,7 +3088,7 @@ export default function BusinessSalesSystem() {
         
         // 2. Cargar productos antes que las ventas
         console.log('🔄 [DEBUG] Cargando productos...');
-        await productsHook.loadProducts();
+        await productsHook.loadProducts().then(() => refreshProductosGestion());
         console.log('✅ [DEBUG] Productos cargados:', productsHook.products.length);
         
         // 3. Luego cargar ventas y otros datos
@@ -3228,13 +3296,13 @@ export default function BusinessSalesSystem() {
       switch (activeTab) {
         case "products":
           if (products.length === 0) {
-            await productsHook.loadProducts();
+            await productsHook.loadProducts().then(() => refreshProductosGestion());
           }
           break;
         case "categories":
           await productsHook.loadCategories();
           if (products.length === 0) {
-            await productsHook.loadProducts();
+            await productsHook.loadProducts().then(() => refreshProductosGestion());
           }
           break;
         case "sales":
@@ -3346,6 +3414,7 @@ export default function BusinessSalesSystem() {
       };
 
       await addProductHook(productData, selectedCategoryId);
+      refreshProductosGestion();
       console.log('✅ [6] addProductHook COMPLETADO');
 
       // Limpieza del formulario
@@ -3442,7 +3511,7 @@ export default function BusinessSalesSystem() {
       setEditingCategoryId(null);
       setEditingCategoryName("");
       await productsHook.loadCategories();
-      await productsHook.loadProducts(); // Recargar productos para actualizar nombre de categoría
+      await productsHook.loadProducts().then(() => refreshProductosGestion()); // Recargar productos para actualizar nombre de categoría
       setNotifications(prev => [{
         type: 'success',
         message: `Categoría actualizada a "${editingCategoryName.trim()}"`,
@@ -3496,7 +3565,8 @@ export default function BusinessSalesSystem() {
       };
 
       await updateProductHook(productoActualizado);
-      
+      refreshProductosGestion();
+
       setIsEditDialogOpen(false);
       setEditingProduct(null);
       
@@ -3518,7 +3588,8 @@ export default function BusinessSalesSystem() {
   const deleteProduct = async (productId: number) => {
     try {
       await deleteProductHook(productId);
-      
+      refreshProductosGestion();
+
       setNotifications(prev => [{
         type: 'success',
         message: 'Producto eliminado correctamente',
@@ -3720,7 +3791,7 @@ export default function BusinessSalesSystem() {
 
       await Promise.all([
         loadSalesFromDB(products),
-        productsHook.loadProducts(),
+        productsHook.loadProducts().then(() => refreshProductosGestion()),
         loadInventoryMovementsHook()
       ]);
       
@@ -4056,7 +4127,7 @@ export default function BusinessSalesSystem() {
   const reloadAllData = async () => {
     try {
       await Promise.all([
-        productsHook.loadProducts(),
+        productsHook.loadProducts().then(() => refreshProductosGestion()),
         loadSalesFromDB(productsHook.products),
         loadSuppliersHook(),
         loadInventoryMovementsHook()
@@ -4119,7 +4190,7 @@ export default function BusinessSalesSystem() {
     setShowReceiveProductsForm(false);
     setSelectedOrderForReceiving(null);
     await loadOrdenesCompra();
-    await productsHook.loadProducts();
+    await productsHook.loadProducts().then(() => refreshProductosGestion());
     await loadInventoryMovementsHook();
   };
 
@@ -4134,7 +4205,7 @@ export default function BusinessSalesSystem() {
       await api.procesarDevolucion(devolucionId, estado);
       await loadDevolucionesProveedores();
       if (estado === 'aprobada') {
-        await productsHook.loadProducts();
+        await productsHook.loadProducts().then(() => refreshProductosGestion());
       }
       
       setNotifications(prev => [{
@@ -4847,13 +4918,10 @@ export default function BusinessSalesSystem() {
                           <div>
                             <Label htmlFor="product-sku">SKU</Label>
                             <div className="p-2 border rounded-md bg-gray-50 text-gray-600">
-                              {products.length > 0 
-                                ? `SKU-${(parseInt(products[products.length - 1].sku.replace('SKU-', '')) + 1).toString().padStart(3, '0')}`
-                                : 'SKU-001'
-                              }
+                              Se asigna al guardar
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              El SKU se genera automáticamente en secuencia
+                              El SKU se genera automáticamente según la categoría seleccionada
                             </p>
                           </div>
                           <div>
@@ -5075,11 +5143,7 @@ export default function BusinessSalesSystem() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {productsHook.filterProducts(productSearchTerm)
-                        .filter(product => {
-                          // FILTRO POR CATEGORÍA - NUEVO
-                          return filterCategoryId === null || product.categoryId === filterCategoryId;
-                        })
+                      {productosGestion
                         .filter(product => product && product.id)
                         .map((product) => (
                         <TableRow key={product.id}>
@@ -5224,6 +5288,43 @@ export default function BusinessSalesSystem() {
                       ))}
                     </TableBody>
                   </Table>
+                  {productosGestionLoading && (
+                    <div className="text-center text-sm text-muted-foreground py-3">Cargando productos...</div>
+                  )}
+                  {!productosGestionLoading && productosGestion.length === 0 && (
+                    <div className="text-center text-sm text-muted-foreground py-3">
+                      No se encontraron productos{productSearchTerm ? ` para "${productSearchTerm}"` : ""}.
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-3">
+                  <p className="text-sm text-muted-foreground">
+                    {productosGestionTotal > 0
+                      ? `Mostrando ${(productosGestionPage - 1) * PRODUCTOS_PAGE_SIZE + 1}-${Math.min(productosGestionPage * PRODUCTOS_PAGE_SIZE, productosGestionTotal)} de ${productosGestionTotal} productos`
+                      : "0 productos"}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={productosGestionPage <= 1 || productosGestionLoading}
+                      onClick={() => setProductosGestionPage(p => Math.max(1, p - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Página {productosGestionPage} de {productosGestionPages}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={productosGestionPage >= productosGestionPages || productosGestionLoading}
+                      onClick={() => setProductosGestionPage(p => Math.min(productosGestionPages, p + 1))}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

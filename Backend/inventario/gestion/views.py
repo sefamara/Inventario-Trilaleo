@@ -2,7 +2,8 @@ from rest_framework.decorators import api_view
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, status
-from django.db import transaction
+from django.core.paginator import Paginator
+from django.db import transaction, IntegrityError
 from django.db.models import Q
 from .models import Categoria, Producto, PresentacionProducto, Merma, Venta, DetalleVenta, Proveedor, MovimientoInventario, OrdenCompra, DetalleOrdenCompra, DevolucionProveedor
 from .serializers import *
@@ -56,14 +57,64 @@ def detalle_categoria(request, pk):
 def lista_productos(request):
     if request.method == 'GET':
         productos = Producto.objects.select_related('id_categoria').all()
+
+        search = request.GET.get('search', '').strip()
+        if search:
+            productos = productos.filter(
+                Q(nombre__icontains=search) |
+                Q(sku__icontains=search) |
+                Q(barcode__icontains=search)
+            )
+
+        categoria_id = request.GET.get('categoria')
+        if categoria_id:
+            productos = productos.filter(id_categoria=categoria_id)
+
+        # Paginación: solo se activa si el cliente envía "page".
+        # Sin ese parámetro se mantiene el comportamiento anterior (lista completa)
+        # para no romper al dashboard, POS y exportación a Excel, que necesitan el set completo.
+        page_param = request.GET.get('page')
+        if page_param:
+            page_size = int(request.GET.get('page_size', 50))
+            paginator = Paginator(productos.order_by('nombre'), page_size)
+            page_obj = paginator.get_page(page_param)
+            serializer = ProductoSerializer(page_obj.object_list, many=True)
+            return Response({
+                'count': paginator.count,
+                'num_pages': paginator.num_pages,
+                'page': page_obj.number,
+                'page_size': page_size,
+                'results': serializer.data,
+            })
+
         serializer = ProductoSerializer(productos, many=True)
         return Response(serializer.data)
     elif request.method == 'POST':
-        serializer = ProductoSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # El SKU siempre lo genera el servidor (nunca el valor que mande el cliente):
+        # se bloquea la fila de la categoría (select_for_update) y se incrementa su
+        # contador de forma atómica, así dos altas simultáneas en la misma categoría
+        # nunca pueden generar el mismo SKU, sin importar cuántos computadores/usuarios
+        # los estén creando al mismo tiempo.
+        data = request.data.copy()
+        categoria_id = data.get('id_categoria')
+
+        if not categoria_id:
+            return Response({'error': 'id_categoria es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                categoria = Categoria.objects.select_for_update().get(pk=categoria_id)
+                categoria.ultimo_sku_numero += 1
+                categoria.save(update_fields=['ultimo_sku_numero'])
+                data['sku'] = f"{categoria.sku_prefix}-{categoria.ultimo_sku_numero:04d}"
+
+                serializer = ProductoSerializer(data=data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Categoria.DoesNotExist:
+            return Response({'error': 'Categoría no encontrada'}, status=status.HTTP_400_BAD_REQUEST)
 
 #================================================================================ DETALLE DE PRODUCTO ================================================================================
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -80,10 +131,16 @@ def detalle_producto(request, pk):
     elif request.method == 'PUT':
         serializer = ProductoSerializer(producto, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except IntegrityError:
+                return Response(
+                    {'error': 'Ya existe otro producto con ese SKU. Elige uno distinto.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
     elif request.method == 'DELETE':
         producto.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
