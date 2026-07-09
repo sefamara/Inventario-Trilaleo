@@ -3628,7 +3628,8 @@ export default function BusinessSalesSystem() {
 
       // 1. Primero actualizar el stock en la base de datos
       await updateStockHook(productId, finalStock, reason);
-      
+      refreshProductosGestion();
+
       // 2. Solo registrar movimiento de inventario si hay cambio real
       if (quantityChange !== 0) {
         const movementType = quantityChange > 0 ? "entrada" : "salida";
