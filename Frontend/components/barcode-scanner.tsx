@@ -8,12 +8,20 @@ interface BarcodeScannerProps {
   onScan: (barcode: string) => void
 }
 
+interface ZoomRange {
+  min: number
+  max: number
+  step: number
+}
+
 export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [useFallback, setUseFallback] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [zoomRange, setZoomRange] = useState<ZoomRange | null>(null)
+  const [zoomValue, setZoomValue] = useState<number | null>(null)
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerIdRef = useRef<string>(`barcode-scanner-${Date.now()}`)
@@ -58,7 +66,7 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
       if (scannerRef.current) {
         const scanner = scannerRef.current
         scannerRef.current = null
-        
+
         try {
           const state = scanner.getState()
           if (state === 2 || state === 3) {
@@ -67,7 +75,7 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
         } catch {
           // Scanner might already be stopped
         }
-        
+
         try {
           scanner.clear()
         } catch {
@@ -78,6 +86,19 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
       console.error("Error stopping scanner:", err)
     }
     setIsScanning(false)
+    setZoomRange(null)
+    setZoomValue(null)
+  }, [])
+
+  const handleZoomChange = useCallback(async (value: number) => {
+    setZoomValue(value)
+    try {
+      await scannerRef.current?.applyVideoConstraints({
+        advanced: [{ zoom: value }],
+      })
+    } catch (err) {
+      console.error("Error applying zoom:", err)
+    }
   }, [])
 
   const startLiveScanner = useCallback(async () => {
@@ -135,6 +156,24 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
           // Barcode not detected in this frame - ignore
         }
       )
+
+      // Detect zoom capability on the running camera track (live, no photo needed)
+      try {
+        const capabilities = html5QrCode.getRunningTrackCapabilities?.() as
+          | (MediaTrackCapabilities & { zoom?: { min: number; max: number; step: number } })
+          | undefined
+
+        if (capabilities?.zoom) {
+          const { min, max, step } = capabilities.zoom
+          const settings = html5QrCode.getRunningTrackSettings?.() as
+            | (MediaTrackSettings & { zoom?: number })
+            | undefined
+          setZoomRange({ min, max, step: step || 0.1 })
+          setZoomValue(settings?.zoom ?? min)
+        }
+      } catch {
+        // Zoom not supported on this device/browser - ignore
+      }
     } catch (err: any) {
       console.error("Error starting live scanner:", err)
       
@@ -279,6 +318,25 @@ export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
               </div>
             </div>
           </div>
+
+          {/* Zoom control - applied live to the running camera track */}
+          {zoomRange && zoomValue !== null && (
+            <div className="px-6 pt-2 pb-1 bg-black/80 flex items-center gap-3">
+              <span className="text-white/70 text-xs shrink-0">Zoom</span>
+              <input
+                type="range"
+                min={zoomRange.min}
+                max={zoomRange.max}
+                step={zoomRange.step}
+                value={zoomValue}
+                onChange={(e) => handleZoomChange(Number(e.target.value))}
+                className="flex-1 accent-green-400"
+              />
+              <span className="text-white/70 text-xs shrink-0 w-8 text-right">
+                {zoomValue.toFixed(1)}x
+              </span>
+            </div>
+          )}
 
           {/* Footer instruction */}
           <div className="p-4 bg-black/80 text-center">
